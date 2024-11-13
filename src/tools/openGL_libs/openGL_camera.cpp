@@ -41,21 +41,19 @@ different license.
 #include "openGL_camera.hpp"
 #include "gl_draw_founction.hpp"
 
-static void glfw_error_callback( int error, const char* description )
-{
+static void glfw_error_callback( int error, const char* description ) {
     fprintf( stderr, "Glfw Error %d: %s\n", error, description );
 }
 
-GLFWwindow* GL_camera::init_openGL_and_ImGUI( const char* window_title, int full_screen, int font_size_bias )
-{
+GLFWwindow* GL_camera::init_openGL_and_ImGUI( const char* window_title, int full_screen, int font_size_bias ) {
     scope_color( ANSI_COLOR_YELLOW_BOLD );
     glfwSetErrorCallback( glfw_error_callback );
     if ( !glfwInit() )
         return nullptr;
 
-    const char* glsl_version = "#version 130";
+    const char* glsl_version = "#version 330";
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
     GLFWwindow* window = glfwCreateWindow( 1280, 720, window_title, nullptr, NULL );
     if ( window == NULL )
         return nullptr;
@@ -65,12 +63,13 @@ GLFWwindow* GL_camera::init_openGL_and_ImGUI( const char* window_title, int full
     glfwSwapInterval( 1 );
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    if ( full_screen )
-    {
+    if ( full_screen ) {
         glfwMaximizeWindow( m_glfw_window );
     }
     ImGuiIO& io = ImGui::GetIO();
-    
+    (void)io;
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableSetMousePos | ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
     init_ImGUI_IO( &io );
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL( m_glfw_window, true );
@@ -83,10 +82,10 @@ GLFWwindow* GL_camera::init_openGL_and_ImGUI( const char* window_title, int full
     set_windows_projection_matrix( vidmode->width / ( 3840.0 / 2000.0 ), m_gl_cam.m_camera_z_near, m_gl_cam.m_camera_z_far );
 #ifndef FONT_DIR
 #else
-    cout << "Load font from: " << std::string( FONT_DIR ).append( "/Roboto-Medium.ttf" ) << endl;
-    cout << "Display width = " << vidmode->width << endl;
-    cout << "Font sclae = " << font_scale << endl;
-    io.Fonts->AddFontFromFileTTF( std::string( FONT_DIR ).append( "/Roboto-Medium.ttf" ).c_str(), font_scale );
+    // cout << "Load font from: " << std::string( FONT_DIR ).append( "/Roboto-Medium.ttf" ) << endl;
+    // cout << "Display width = " << vidmode->width << endl;
+    // cout << "Font sclae = " << font_scale << endl;
+    // io.Fonts->AddFontFromFileTTF( std::string( FONT_DIR ).append( "/Roboto-Medium.ttf" ).c_str(), font_scale );
 #endif
 
     // window = glfwCreateWindow( 640, 480, std::string(window_title).append("_depth").c_str(), nullptr, NULL );
@@ -109,8 +108,7 @@ void GL_camera::set_last_tracking_camera_pos( Eigen::Quaterniond current_camera_
     // cout << ANSI_COLOR_BLUE_BOLD << "Set last camera translation: " << m_track_last_follow_translation.transpose() << ANSI_COLOR_RESET << endl;
 }
 
-void GL_camera::draw_frame_start( ImVec4 clear_color )
-{
+void GL_camera::draw_frame_start( ImVec4 clear_color ) {
     glfwPollEvents();
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -134,7 +132,7 @@ void GL_camera::draw_frame_start( ImVec4 clear_color )
 
     get_pressed_keys();
     servo_moving_camera();
-    init_dock_space();
+    // init_dock_space();
 }
 
 void GL_camera::draw_frame_finish( int flush_camera_matrix )
@@ -161,14 +159,14 @@ void GL_camera::destroy_window()
 
 void GL_camera::init_dock_space()
 {
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_Tooltip;
     // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_AutoHideTabBar;
+    // static ImGuiTreeNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_AutoHideTabBar;
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos( viewport->WorkPos );
     ImGui::SetNextWindowSize( viewport->WorkSize );
-    ImGui::SetNextWindowViewport( viewport->ID );
+    // ImGui::SetNextWindowViewport( viewport->ID );
 
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 0.0f );
@@ -183,23 +181,23 @@ void GL_camera::init_dock_space()
 
     // Submit the DockSpace
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGuiID dockspace_id = ImGui::GetID( "MyDockSpace" );
-    ImGui::DockSpace( dockspace_id, ImVec2( 0.0f, 0.0f ), dockspace_flags );
+    // ImGui::DockSpace( dockspace_id, ImVec2( 0.0f, 0.0f ), dockspace_flags );
     ImGui::End();
 }
 
 void GL_camera::get_pressed_keys()
 {
     m_pressed_key.clear();
-    for ( ImGuiKey key = 0; key < ImGuiKey_COUNT; key++ )
+    for ( int key = 0; key < (int)ImGuiKey_COUNT; key++ )
     {
-        if ( imgui_key_funcs::IsLegacyNativeDupe( key ) )
+        if ( imgui_key_funcs::IsLegacyNativeDupe( (ImGuiKey )key ))
             continue;
-        if ( ImGui::IsKeyPressed( key ) )
+        if ( ImGui::IsKeyPressed( (ImGuiKey )key ) )
         {
-            m_pressed_key.insert( ImGui::GetKeyName( key ) );
+            m_pressed_key.insert( ImGui::GetKeyName( (ImGuiKey )key ) );
         }
     }
 }
@@ -315,43 +313,13 @@ void GL_camera::servo_moving_camera()
     
 }
 
-void GL_camera::set_windows_projection_matrix( float camera_focus, float z_near, float z_far )
-{
+void GL_camera::set_windows_projection_matrix( float camera_focus, float z_near, float z_far ) {
     glfwGetFramebufferSize( m_glfw_window, &m_gl_cam.m_display_w, &m_gl_cam.m_display_h );
     m_gl_cam.m_camera_intrinsic << camera_focus, 0, m_gl_cam.m_display_w / 2, 0, camera_focus, m_gl_cam.m_display_h / 2, 0, 0, 1;
     m_gl_cam.m_camera_intrinsic_inv = m_gl_cam.m_camera_intrinsic.inverse();
     m_gl_cam.m_camera_focus = camera_focus;
-    if ( 0 )
-    {
-        Eigen::Matrix< float, 4, 4 > projection_matrix =
-            init_projection_matrix< float >( m_gl_cam.m_display_w, m_gl_cam.m_display_h, camera_focus, camera_focus, m_gl_cam.m_display_w * 0.5,
-                                             m_gl_cam.m_display_h * 0.5, z_near, z_far );
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf( projection_matrix.data() );
-    }
-    else
-    {
-        m_gl_cam.set_gl_projection( 0, 0, camera_focus );
-        // float fov_y = 2 * atan2( m_gl_cam.m_display_h / 2, camera_focus );
-        // m_gl_cam.m_camera_z_near = z_near;
-        // m_gl_cam.m_camera_z_far = z_far;
-        // m_gl_cam.m_glm_projection_mat = glm::perspective( fov_y, ( float ) m_gl_cam.m_display_w / ( float ) m_gl_cam.m_display_h, z_near, z_far );
-        // glMatrixMode( GL_PROJECTION );
-        // glLoadMatrixf( &m_gl_cam.m_glm_projection_mat[ 0 ][ 0 ] );
-        // if ( 0 )
-        // {
-        //     // if_first_print = false;
-        //     cout << "Display width: " << m_gl_cam.m_display_w << ", heigh: " << m_gl_cam.m_display_h << endl;
-        //     cout << "Camera focus = " << camera_focus << ", fov = " << fov_y << endl;
-        //     cout << "Camera matrix = \r\n" << m_gl_cam.m_camera_intrinsic << endl;
-        //     cout << "Projection matrix is: \r\n" << eigen_mat_f< 4, 4 >( &m_gl_cam.m_glm_projection_mat[ 0 ][ 0 ] ) << endl;
-        //     cout << "Computed project mat is: \r\n"
-        //          << init_projection_matrix< float >( m_gl_cam.m_display_w, m_gl_cam.m_display_h, camera_focus, camera_focus, m_gl_cam.m_display_w *
-        //          0.5, m_gl_cam.m_display_h * 0.5,
-        //                                              z_near, z_far )
-        //          << endl;
-        // }
-    }
+
+    m_gl_cam.set_gl_projection( 0, 0, camera_focus );
 }
 
 float GL_camera::get_screen_pixel_depth( int pos_x, int pos_y )
@@ -449,10 +417,8 @@ void GL_camera::draw_debug_objects()
     draw_cursor_3d_pt();
 }
 
-void GL_camera::scroll_callback( GLFWwindow* window, double x_offset, double yoffset )
-{
-    if ( m_gui_io->WantCaptureMouse )
-    {
+void GL_camera::scroll_callback( GLFWwindow* window, double x_offset, double yoffset ) {
+    if ( m_gui_io->WantCaptureMouse ) {
         return;
     }
     // cout << "scroll_callback: " << scroll_counter++ << ", x_offset = " << x_offset << ", y_offset = " << yoffset  << endl;
@@ -466,8 +432,7 @@ void GL_camera::scroll_callback( GLFWwindow* window, double x_offset, double yof
 void GL_camera::mouse_button_callback( GLFWwindow* window, int button, int action, int mods )
 {
     mouse_counter++;
-    if ( m_gui_io->WantCaptureMouse )
-    {
+    if ( m_gui_io->WantCaptureMouse ) {
         in_left_drag = false;
         in_right_drag = false;
         in_middle_drag = false;
@@ -672,7 +637,7 @@ void GL_camera::draw_camera_window( bool& win_open )
 {
     static int e = 0;
 
-    ImGui::Begin( "Camera Pose", &win_open, ImGuiWindowFlags_NoDocking );
+    ImGui::Begin( "Camera Pose", &win_open );
     ImGui::Text( "Camera focus: %.5f", m_gl_cam.m_camera_focus );
     ImGui::Text( "Screen cursor pts: %f, %f", m_gui_io->MousePos.x, m_gui_io->MousePos.y );
     ImGui::Text( "Z_value: %.5f", m_z_depth_value );
@@ -729,8 +694,7 @@ void GL_camera::draw_camera_window( bool& win_open )
 
 void GL_camera::tracking_camera( const Eigen::Quaterniond& current_camera_q, const vec_3& current_camera_pos )
 {
-    if ( m_need_reset_tracking_camera_pos )
-    {
+    if ( m_need_reset_tracking_camera_pos ) {
         set_last_tracking_camera_pos( current_camera_q, current_camera_pos );
     }
     m_gl_cam.m_camera_pos = m_track_last_openGL_translation + ( current_camera_pos - m_track_last_follow_translation );

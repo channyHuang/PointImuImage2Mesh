@@ -182,11 +182,11 @@ void Cam_view::draw_depth_image( bool* win_open)
         set_horizon_fov(horizon_fov);
         if ( !m_gui_dy_config )
         {
-            win_tag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar;
+            win_tag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
         }
         else
         {
-            win_tag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking;
+            win_tag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse;
         }
         // ImGui::Begin( "OpenGL Texture test", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground |
         // ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar  );
