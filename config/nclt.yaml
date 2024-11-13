@@ -16,7 +16,7 @@ img_point_cov : 1000 #100
 laser_point_cov : 0.001 #0.001
 
 common:
-    lid_topic:  "/points_raw"
+    lid_topic:  "/velodyne_points"
     imu_topic:  "/imu_raw"
 
 preprocess:
@@ -27,7 +27,7 @@ preprocess:
     calib_laser: false              # true for KITTI Odometry dataset
 
 mapping:
-    imu_en: true
+    imu_en: false
     imu_int_frame: 30
     acc_cov: 0.5
     gyr_cov: 0.3
@@ -52,7 +52,7 @@ voxel:
 
 
 camera:
-    img_topic: /left_camera/image
+    img_topic: /image_left
     Rcl: [ 0.000910902,   -0.999994,  0.00343779, # new extrinsic
           -0.0101394,     -0.00344672,   -0.999943,
            0.999948,       0.000875869,  -0.0101423]
