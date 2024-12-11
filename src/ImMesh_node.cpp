@@ -120,11 +120,11 @@ std::string          g_debug_string;
 int                  g_current_frame = -1;
 
 // GUI settting
-bool   g_display_mesh = true;
+bool   g_display_mesh = false;
 int    g_enable_mesh_rec = true;
 int    g_save_to_offline_bin = false;
 int    g_display_face = 1;
-bool   g_draw_LiDAR_point = true;
+bool   g_draw_LiDAR_point = false;
 float  g_draw_path_size = 2.0;
 float  g_display_camera_size = 1.0;
 float  g_ply_smooth_factor = 1.0; 
@@ -132,8 +132,8 @@ int    g_ply_smooth_k = 20.0;
 bool   g_display_main_window = true;
 bool   g_display_camera_pose_window = false;
 bool   g_display_help_win = false;
-bool   g_follow_cam = true;
-bool   g_mesh_if_color = false;
+bool   g_follow_cam = false;
+bool   g_mesh_if_color = true;
 bool   g_if_draw_z_plane = true;
 bool   g_if_draw_wireframe = false;
 bool   g_if_draw_depth = false;
@@ -273,6 +273,7 @@ int main( int argc, char **argv )
     cout << "==== Loading parameter end =====" << endl;
 
     std::thread thr_mapping = std::thread( &Voxel_mapping::service_LiDAR_update, &voxel_mapping );
+    std::thread thr_vio = std::thread( &Voxel_mapping::service_VIO_update, &voxel_mapping );
     std::thread thr = std::thread( service_refresh_and_synchronize_triangle, 100 );
     std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
     Common_tools::Timer disp_tim;

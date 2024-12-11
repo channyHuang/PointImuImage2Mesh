@@ -159,7 +159,21 @@ class Triangle_facet_shader
         init_data_buffer();
     }
 
-    
+    void set_pointcloud( std::vector< eigen_vec_f<3> >& _pts_pos, std::vector<eigen_vec<3>> &_pts_color) {
+        m_pts_pos_vector.resize(_pts_pos.size());
+        m_pts_normal_vector.resize(_pts_pos.size());
+        m_pts_color_vector.resize( _pts_pos.size() );
+        for ( int i = 0; i < _pts_pos.size(); i+=3 ) {
+            vec_3f normal = ( _pts_pos[ i + 1 ] - _pts_pos[ i ] ).cross( _pts_pos[ i + 2 ] - _pts_pos[ i ] );
+            for ( int j = 0; j < 3; j++ )
+            {
+                m_pts_pos_vector[ i + j ] = _pts_pos[ i + j ];
+                m_pts_normal_vector[ i + j ] = normal;
+                m_pts_color_vector[ i + j ] = ( (int)(_pts_color[i + j][0]) << 16 ) | ( (int)(_pts_color[i + j][1]) << 8 ) | (int)(_pts_color[i + j][2]);
+            }
+        }
+        init_data_buffer();
+    }        
 
     void draw( glm::mat4 proj_mat, glm::mat4 pose_mat )
     {

@@ -64,11 +64,9 @@ void RGB_pts::set_pos( const vec_3& pos )
         m_pos_aft_smooth[ i ] = pos( i );
     }
 }
-
-void RGB_pts::set_smooth_pos( const vec_3& pos )
-{
-    for ( size_t i = 0; i < 3; i++ )
-    {
+// 和周边点平滑后的点
+void RGB_pts::set_smooth_pos( const vec_3& pos ) {
+    for ( size_t i = 0; i < 3; i++ ) {
         m_pos_aft_smooth[ i ] = pos( i );
     }
     m_smoothed = true;
@@ -98,7 +96,7 @@ mat_3_3 RGB_pts::get_rgb_cov()
 
 vec_3 RGB_pts::get_rgb()
 {
-    return vec_3( m_rgb[ 0 ], m_rgb[ 1 ], m_rgb[ 2 ] ) / m_first_obs_exposure_time;
+    return vec_3( m_rgb[ 0 ], m_rgb[ 1 ], m_rgb[ 2 ] );
 }
 
 vec_3 RGB_pts::get_radiance()
@@ -115,82 +113,44 @@ pcl::PointXYZI RGB_pts::get_pt()
     return pt;
 }
 
-const double image_obs_cov = 1.5;
+const double image_obs_cov = 15;
 // const double process_noise_sigma = 1.5;
 const double process_noise_sigma = 0.15;
 // const double process_noise_sigma = 0.000;
 // const double process_noise_sigma = 150000;
 // const double process_noise_sigma = 0.0;
 const int THRESHOLD_OVEREXPOSURE = 255;
-int RGB_pts::update_rgb( const vec_3& rgb, const double obs_dis, const vec_3 obs_sigma, const double obs_time, const double current_exposure_time )
+int RGB_pts::update_rgb( const vec_3& rgb, const double obs_dis, const vec_3 obs_sigma, const double obs_time)
 {
-    if ( rgb.norm() == 0 ) // avoid less-exposure
-    {
+    if (m_obs_dis != 0 && (obs_dis > m_obs_dis * 1.2)) {
         return 0;
     }
-
-    if ( rgb( 0 ) > THRESHOLD_OVEREXPOSURE && rgb( 1 ) > THRESHOLD_OVEREXPOSURE && rgb( 2 ) > THRESHOLD_OVEREXPOSURE ) // avoid the over-exposure
-    {
-        return 0;
-    }
-
-    if ( m_obs_dis != 0 && ( ( obs_dis > m_obs_dis * 1.1 ) ) )
-    {
-        return 0;
-    }
-
-    if ( m_N_rgb == 0 )
-    {
+    
+    if ( m_N_rgb == 0 ) {
         // For first time of observation.
         m_last_obs_time = obs_time;
         m_obs_dis = obs_dis;
-        m_first_obs_exposure_time = current_exposure_time;
-        for ( int i = 0; i < 3; i++ )
-        {
-            m_rgb[ i ] = rgb( i ) * current_exposure_time;
+        for ( int i = 0; i < 3; i++ ) {
+            m_rgb[ i ] = rgb( i )  ;//* current_exposure_time;
             m_cov_rgb[ i ] = obs_sigma( i );
         }
         m_N_rgb = 1;
         return 0;
     }
-
     // State estimation for robotics, section 2.2.6, page 37-38
-    for ( int i = 0; i < 3; i++ )
-    {
+    for ( int i = 0; i < 3; i++ ) {
         m_cov_rgb[ i ] = ( m_cov_rgb[ i ] + process_noise_sigma * ( obs_time - m_last_obs_time ) ); // Add process noise
         double old_sigma = m_cov_rgb[ i ];
-        m_cov_rgb[ i ] = sqrt( 1.0 / ( 1.0 / m_cov_rgb[ i ] / m_cov_rgb[ i ] + 1.0 / obs_sigma( i ) / obs_sigma( i ) ) );
-        m_rgb[ i ] = m_cov_rgb[ i ] * m_cov_rgb[ i ] *
-                     ( m_rgb[ i ] / old_sigma / old_sigma + rgb( i ) * current_exposure_time / obs_sigma( i ) / obs_sigma( i ) );
+        m_cov_rgb[i] = sqrt( 1.0 / (1.0 / m_cov_rgb[i] / m_cov_rgb[i] + 1.0 / obs_sigma(i) / obs_sigma(i)) );
+        m_rgb[i] = m_cov_rgb[i] * m_cov_rgb[i] * ( m_rgb[i] / old_sigma / old_sigma + rgb(i) / obs_sigma(i) / obs_sigma(i) );
     }
-
-    vec_3  res_rgb_vec = vec_3( m_rgb[ 0 ], m_rgb[ 1 ], m_rgb[ 2 ] ) / m_first_obs_exposure_time;
-    double max_rgb = res_rgb_vec.maxCoeff(); // Avoid overexposure.
-    if ( max_rgb > 255 )
-    {
-        for ( int i = 0; i < 3; i++ )
-        {
-            m_rgb[ i ] = m_rgb[ i ] * 254.999 / max_rgb;
-        }
-    }
-
-    // if(m_first_obs_exposure_time > 1.0 / g_camera_exp_tim_lower_bound)
-    // {
-    //     m_first_obs_exposure_time = 1.0 / g_camera_exp_tim_lower_bound;
-    // }
-
-    if ( obs_dis < m_obs_dis )
-    {
+    
+    if ( obs_dis < m_obs_dis ) {
         m_obs_dis = obs_dis;
     }
     m_last_obs_time = obs_time;
     m_N_rgb++;
-
-    //  if ( m_first_obs_exposure_time <= current_exposure_time )
-    // {
-    //     m_first_obs_exposure_time = current_exposure_time;
-    // }
-    m_first_obs_exposure_time = ( m_first_obs_exposure_time * ( m_N_rgb ) + current_exposure_time ) / ( m_N_rgb + 1 );
+    
     return 1;
 }
 
@@ -307,27 +267,23 @@ void Global_map::service_refresh_pts_for_projection()
     Common_tools::Timer            timer;
     std::shared_ptr< Image_frame > img_for_projection = std::make_shared< Image_frame >();
     g_voxel_resolution = m_voxel_resolution;
-    while ( 1 )
-    {
+    while ( 1 ) {
         std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
         m_mutex_img_pose_for_projection->lock();
 
         *img_for_projection = m_img_for_projection;
         m_mutex_img_pose_for_projection->unlock();
-        if ( img_for_projection->m_img_cols == 0 || img_for_projection->m_img_rows == 0 )
-        {
+        if ( img_for_projection->m_img_cols == 0 || img_for_projection->m_img_rows == 0 ) {
             continue;
         }
 
-        if ( img_for_projection->m_frame_idx == m_updated_frame_index )
-        {
+        if ( img_for_projection->m_frame_idx == m_updated_frame_index ) {
             continue;
         }
         timer.tic( " " );
         std::shared_ptr< std::vector< std::shared_ptr< RGB_pts > > > pts_rgb_vec_for_projection =
             std::make_shared< std::vector< std::shared_ptr< RGB_pts > > >();
-        if ( m_if_get_all_pts_in_boxes_using_mp )
-        {
+        if ( m_if_get_all_pts_in_boxes_using_mp ) {
             std::vector< std::shared_ptr< RGB_pts > > pts_in_recent_hitted_boxes;
             pts_in_recent_hitted_boxes.reserve( 1e6 );
             std::unordered_set< std::shared_ptr< RGB_Voxel > > boxes_recent_hitted;
@@ -355,8 +311,7 @@ void Global_map::service_refresh_pts_for_projection()
 void Global_map::render_points_for_projection( std::shared_ptr< Image_frame >& img_ptr )
 {
     m_mutex_pts_vec->lock();
-    if ( m_pts_rgb_vec_for_projection != nullptr )
-    {
+    if ( m_pts_rgb_vec_for_projection != nullptr ) {
         render_pts_in_voxels( img_ptr, *m_pts_rgb_vec_for_projection );
         // render_pts_in_voxels(img_ptr, m_rgb_pts_vec);
     }
@@ -364,8 +319,7 @@ void Global_map::render_points_for_projection( std::shared_ptr< Image_frame >& i
     m_mutex_pts_vec->unlock();
 }
 
-void Global_map::update_pose_for_projection( std::shared_ptr< Image_frame >& img, double fov_margin )
-{
+void Global_map::update_pose_for_projection( std::shared_ptr< Image_frame >& img, double fov_margin ) {
     m_mutex_img_pose_for_projection->lock();
     m_img_for_projection.set_intrinsic( img->m_cam_K );
     m_img_for_projection.m_img_cols = img->m_img_cols;
@@ -380,8 +334,7 @@ void Global_map::update_pose_for_projection( std::shared_ptr< Image_frame >& img
     m_mutex_img_pose_for_projection->unlock();
 }
 
-bool Global_map::is_busy()
-{
+bool Global_map::is_busy() {
     return m_in_appending_pts;
 }
 
@@ -393,12 +346,10 @@ template int Global_map::append_points_to_global_map< pcl::PointXYZRGB >( pcl::P
                                                                           int disable_append );
 
 vec_3 g_current_lidar_position;
-
-std::vector< RGB_pt_ptr > retrieve_pts_in_voxels( std::unordered_set< std::shared_ptr< RGB_Voxel > >& neighbor_voxels )
-{
+// 获取同一voxel中的相邻点
+std::vector< RGB_pt_ptr > retrieve_pts_in_voxels( std::unordered_set< std::shared_ptr< RGB_Voxel > >& neighbor_voxels ) {
     std::vector< RGB_pt_ptr > RGB_pt_ptr_vec;
-    for ( std::unordered_set< std::shared_ptr< RGB_Voxel > >::iterator it = neighbor_voxels.begin(); it != neighbor_voxels.end(); it++ )
-    {
+    for ( std::unordered_set< std::shared_ptr< RGB_Voxel > >::iterator it = neighbor_voxels.begin(); it != neighbor_voxels.end(); it++ ) {
         auto it_s = ( *it )->m_pts_in_grid.begin();
         auto it_e = ( *it )->m_pts_in_grid.end();
         RGB_pt_ptr_vec.insert( RGB_pt_ptr_vec.end(), it_s, it_e );
@@ -417,52 +368,40 @@ int Global_map::append_points_to_global_map( pcl::PointCloud< T >& pc_in, double
     tim.tic();
     int acc = 0;
     int rej = 0;
-    if ( pts_added_vec != nullptr )
-    {
+    if ( pts_added_vec != nullptr ) {
         pts_added_vec->clear();
     }
 
-    if ( m_recent_visited_voxel_activated_time == 0 )
-    {
+    if ( m_recent_visited_voxel_activated_time == 0 ) {
         voxels_recent_visited.clear();
-    }
-    else
-    {
+    } else {
         m_mutex_m_box_recent_hitted->lock();
         std::swap( voxels_recent_visited, m_voxels_recent_visited );
         m_mutex_m_box_recent_hitted->unlock();
-        for ( Voxel_set_iterator it = voxels_recent_visited.begin(); it != voxels_recent_visited.end(); )
-        {
-
-            if ( added_time - ( *it )->m_last_visited_time > m_recent_visited_voxel_activated_time )
-            {
+        for ( Voxel_set_iterator it = voxels_recent_visited.begin(); it != voxels_recent_visited.end(); ) {
+            if ( added_time - ( *it )->m_last_visited_time > m_recent_visited_voxel_activated_time ) {
                 it = voxels_recent_visited.erase( it );
                 continue;
             }
-            if ( ( *it )->m_pts_in_grid.size() )
-            {
+            if ( ( *it )->m_pts_in_grid.size() ) {
                 double voxel_dis = ( g_current_lidar_position - vec_3( ( *it )->m_pts_in_grid[ 0 ]->get_pos() ) ).norm();
-                // if ( voxel_dis > 30 )
-                // {
-                //     it = voxels_recent_visited.erase( it );
-                //     continue;
-                // }
+                if ( voxel_dis > 10 ) {
+                    it = voxels_recent_visited.erase( it );
+                    continue;
+                }
             }
 
             it++;
         }
-        // cout << "Restored voxel number = " << voxels_recent_visited.size() << endl;
     }
     int number_of_voxels_before_add = voxels_recent_visited.size();
     int pt_size = pc_in.points.size();
-    // step = 4;
 
     KDtree_pt_vector     pt_vec_vec;
     std::vector< float > dist_vec;
-
+    // 对每个点判断是否存在过于接近的点，从而决定是否加入voxel中
     RGB_voxel_ptr* temp_box_ptr_ptr;
-    for ( long pt_idx = 0; pt_idx < pt_size; pt_idx += step )
-    {
+    for ( long pt_idx = 0; pt_idx < pt_size; pt_idx += step ) {
         int  add = 1;
         int  grid_x = std::round( pc_in.points[ pt_idx ].x / m_minimum_pts_size );
         int  grid_y = std::round( pc_in.points[ pt_idx ].y / m_minimum_pts_size );
@@ -471,75 +410,62 @@ int Global_map::append_points_to_global_map( pcl::PointCloud< T >& pc_in, double
         int  box_y = std::round( pc_in.points[ pt_idx ].y / m_voxel_resolution );
         int  box_z = std::round( pc_in.points[ pt_idx ].z / m_voxel_resolution );
         auto pt_ptr = m_hashmap_3d_pts.get_data( grid_x, grid_y, grid_z );
-        if ( pt_ptr != nullptr )
-        {
+        if ( pt_ptr != nullptr ) {
             add = 0;
-            if ( pts_added_vec != nullptr )
-            {
+            if ( pts_added_vec != nullptr ) {
                 pts_added_vec->push_back( *pt_ptr );
             }
         }
         RGB_voxel_ptr box_ptr;
         temp_box_ptr_ptr = m_hashmap_voxels.get_data( box_x, box_y, box_z );
-        if ( temp_box_ptr_ptr == nullptr )
-        {
+        if ( temp_box_ptr_ptr == nullptr ) {
             box_ptr = std::make_shared< RGB_Voxel >( box_x, box_y, box_z );
             m_hashmap_voxels.insert( box_x, box_y, box_z, box_ptr );
             m_voxel_vec.push_back( box_ptr );
         }
-        else
-        {
+        else {
             box_ptr = *temp_box_ptr_ptr;
         }
         voxels_recent_visited.insert( box_ptr );
         box_ptr->m_last_visited_time = added_time;
-        if ( add == 0 )
-        {
+        if ( add == 0 ) {
             rej++;
             continue;
         }
-        if ( disable_append )
-        {
+        if ( disable_append ) {
             continue;
         }
         acc++;
         KDtree_pt kdtree_pt( vec_3( pc_in.points[ pt_idx ].x, pc_in.points[ pt_idx ].y, pc_in.points[ pt_idx ].z ), 0 );
-        if ( m_kdtree.Root_Node != nullptr )
-        {
+        if ( m_kdtree.Root_Node != nullptr ) {
             m_kdtree.Nearest_Search( kdtree_pt, 1, pt_vec_vec, dist_vec );
-            if ( pt_vec_vec.size() )
-            {
-                if ( sqrt( dist_vec[ 0 ] ) < m_minimum_pts_size )
-                {
+            if ( pt_vec_vec.size() ) {
+                if ( sqrt( dist_vec[ 0 ] ) < m_minimum_pts_size ) {
                     continue;
                 }
             }
         }
+        // 加入新点
         std::shared_ptr< RGB_pts > pt_rgb = std::make_shared< RGB_pts >();
         pt_rgb->set_pos( vec_3( pc_in.points[ pt_idx ].x, pc_in.points[ pt_idx ].y, pc_in.points[ pt_idx ].z ) );
         pt_rgb->m_pt_index = m_rgb_pts_vec.size();
         kdtree_pt.m_pt_idx = pt_rgb->m_pt_index;
         m_rgb_pts_vec.push_back( pt_rgb );
         m_hashmap_3d_pts.insert( grid_x, grid_y, grid_z, pt_rgb );
-        if ( box_ptr != nullptr )
-        {
+        if ( box_ptr != nullptr ) {
             box_ptr->m_pts_in_grid.push_back( pt_rgb );
             // box_ptr->add_pt(pt_rgb);
             box_ptr->m_new_added_pts_count++;
             box_ptr->m_meshing_times = 0;
-        }
-        else
-        {
+        } else {
             scope_color( ANSI_COLOR_RED_BOLD );
-            for ( int i = 0; i < 100; i++ )
-            {
+            for ( int i = 0; i < 100; i++ ) {
                 cout << "box_ptr is nullptr!!!" << endl;
             }
         }
         // Add to kdtree
         m_kdtree.Add_Point( kdtree_pt, false );
-        if ( pts_added_vec != nullptr )
-        {
+        if ( pts_added_vec != nullptr ) {
             pts_added_vec->push_back( pt_rgb );
         }
     }
@@ -595,8 +521,7 @@ void Global_map::render_pts_in_voxels( std::shared_ptr< Image_frame >& img_ptr, 
             cout << ANSI_COLOR_RED << "Error, render RGB = " << rgb_color.transpose() << ANSI_COLOR_RESET << endl;
         }
         // pts_for_render[i]->update_gray(gray, pt_cam.norm());
-        pts_for_render[ i ]->update_rgb( rgb_color, pt_cam_dis, vec_3( image_obs_cov, image_obs_cov, image_obs_cov ), obs_time,
-                                         img_ptr->m_image_inverse_exposure_time );
+        pts_for_render[ i ]->update_rgb( rgb_color, pt_cam_dis, vec_3( image_obs_cov, image_obs_cov, image_obs_cov ), obs_time);
         img_ptr->m_gama_para = gama_bak;
         // m_rgb_pts_vec[i]->update_rgb( vec_3(gray, gray, gray) );
     }
@@ -619,68 +544,31 @@ static inline double thread_render_pts_in_voxel( const int& pt_start, const int&
     double              pt_cam_norm;
     Common_tools::Timer tim;
     tim.tic();
-    vec_3  pt_radiance;
-    double allow_render_dis = std::max( 0.1, g_voxel_resolution * 0.2 );
-    for ( int voxel_idx = pt_start; voxel_idx < pt_end; voxel_idx++ )
-    {
-        // continue;
+    // img_ptr->dump_pose_and_image("/home/" + std::to_string(img_ptr->m_frame_idx) + "state");
+    // std::ofstream ofs("/home/" + std::to_string(img_ptr->m_frame_idx) + "pts.txt", std::ios::app);
+    for ( int voxel_idx = pt_start; voxel_idx < pt_end; voxel_idx++ ) {
         RGB_voxel_ptr voxel_ptr = ( *voxels_for_render )[ voxel_idx ];
-        double        min_voxel_dis = 3e8;
-        // for ( int i = 0; i < voxel_ptr->m_pts_in_grid.size(); i++ )
-        // {
-        //     double pt_cam_dis = ( voxel_ptr->m_pts_in_grid[i]->get_pos() - img_ptr->m_pose_w2c_t ).dot( img_ptr->m_image_norm );
-        //     // double pt_cam_dis = ( voxel_ptr->m_pts_in_grid[i]->get_pos() - img_ptr->m_pose_w2c_t ).norm();
-        //     if ( pt_cam_dis < min_voxel_dis )
-        //     {
-        //         min_voxel_dis = pt_cam_dis;
-        //     }
-        // }
-        for ( int pt_idx = 0; pt_idx < voxel_ptr->m_pts_in_grid.size(); pt_idx++ )
-        {
+        for ( int pt_idx = 0; pt_idx < voxel_ptr->m_pts_in_grid.size(); pt_idx++ ) {
             pt_w = voxel_ptr->m_pts_in_grid[ pt_idx ]->get_pos();
-            vec_3  pt_cam_view_vector = pt_w - img_ptr->m_pose_w2c_t;
-            double view_dis = pt_cam_view_vector.norm();
-            double view_angle = acos( pt_cam_view_vector.dot( img_ptr->m_image_norm ) / ( view_dis + 0.0001 ) ) * 57.3;
-            view_angle = std::max( view_angle, 5.0 );
-            view_dis = std::max( view_dis, 1.0 );
-            if ( view_angle > 30 )
-            {
+            
+            if ( img_ptr->project_3d_point_in_this_img( pt_w, u, v, nullptr, 1.0 ) == false ) {
                 continue;
             }
-            if ( img_ptr->project_3d_point_in_this_img( pt_w, u, v, nullptr, 1.0 ) == false )
-            {
-                continue;
-            }
+            
+            pt_cam_norm = ( pt_w - img_ptr->m_pose_w2c_t ).norm();
 
-            vec_3 obs_cov =
-                vec_3( image_obs_cov * view_dis * view_angle, image_obs_cov * view_dis * view_angle, image_obs_cov * view_dis * view_angle );
             rgb_color = img_ptr->get_rgb( u, v, 0 );
-            if ( voxel_ptr->m_pts_in_grid[ pt_idx ]->update_rgb( rgb_color, view_dis, obs_cov, obs_time, img_ptr->m_image_inverse_exposure_time ) )
+            vec_3 pt_cam = (img_ptr->m_pose_w2c_q * pt_w + img_ptr->m_pose_w2c_t);
+
+            // ofs << pt_w(0) << " " << pt_w(1) << " " << pt_w(2) << " " << pt_cam(0) << " " << pt_cam(1) << " " << pt_cam(2) << " " << rgb_color(0) << " " << rgb_color(1) << " " << rgb_color(2) << std::endl;
+            if (  voxel_ptr->m_pts_in_grid[pt_idx]->update_rgb(
+                     rgb_color, pt_cam_norm, vec_3( image_obs_cov, image_obs_cov, image_obs_cov ), obs_time ) )
             {
                 render_pts_count++;
-                if ( voxel_ptr->m_pts_in_grid[ pt_idx ]->get_rgb().maxCoeff() > 254 )
-                {
-                    continue;
-                }
-                pt_radiance = voxel_ptr->m_pts_in_grid[ pt_idx ]->get_radiance();
-                pt_radiance = ( pt_radiance / img_ptr->m_image_inverse_exposure_time );
-                if ( pt_radiance.maxCoeff() > 245.0 )
-                {
-                    continue;
-                }
-                // double brightness_err = fabs(rgb_color.mean() - pt_radiance.mean());
-                double brightness_err = fabs( rgb_color.norm() - pt_radiance.norm() );
-                if ( brightness_err > g_maximum_pe_error )
-                {
-                    brightness_err = g_maximum_pe_error;
-                    // continue;
-                }
-                img_ptr->m_acc_render_count++;
-                img_ptr->m_acc_photometric_error = img_ptr->m_acc_photometric_error + brightness_err;
-                // img_ptr->m_acc_photometric_error += std::atomic<double>((pt_color- rgb_color).norm());
             }
         }
     }
+    // ofs.close();
     double cost_time = tim.toc() * 100;
     return cost_time;
 }
@@ -692,62 +580,56 @@ void render_pts_in_voxels_mp( std::shared_ptr< Image_frame >& img_ptr, std::unor
 {
     Common_tools::Timer tim;
     g_voxel_for_render.clear();
-    for ( Voxel_set_iterator it = ( *_voxels_for_render ).begin(); it != ( *_voxels_for_render ).end(); it++ )
-    {
+    for ( Voxel_set_iterator it = ( *_voxels_for_render ).begin(); it != ( *_voxels_for_render ).end(); it++ ) {
         g_voxel_for_render.push_back( *it );
     }
     std::vector< std::future< double > > results;
     tim.tic( "Render_mp" );
     int numbers_of_voxels = g_voxel_for_render.size();
-    g_cost_time_logger.record( "Pts_num", numbers_of_voxels );
+    if (numbers_of_voxels <= 0) return;
+    // g_cost_time_logger.record( "Pts_num", numbers_of_voxels );
     render_pts_count = 0;
     img_ptr->m_acc_render_count = 0;
     img_ptr->m_acc_photometric_error = 0;
-    if ( USING_OPENCV_TBB )
-    {
+    if ( USING_OPENCV_TBB ) {
         cv::parallel_for_( cv::Range( 0, numbers_of_voxels ),
                            [&]( const cv::Range& r ) { thread_render_pts_in_voxel( r.start, r.end, img_ptr, &g_voxel_for_render, obs_time ); } );
-    }
-    else
-    {
+    } else {
         int num_of_threads = std::min( 8 * 2, ( int ) numbers_of_voxels );
         // results.clear();
         results.resize( num_of_threads );
         tim.tic( "Com" );
-        for ( int thr = 0; thr < num_of_threads; thr++ )
-        {
+        for ( int thr = 0; thr < num_of_threads; thr++ ) {
             // cv::Range range(thr * pt_size / num_of_threads, (thr + 1) * pt_size / num_of_threads);
             int start = thr * numbers_of_voxels / num_of_threads;
             int end = ( thr + 1 ) * numbers_of_voxels / num_of_threads;
             results[ thr ] = m_thread_pool_ptr->commit_task( thread_render_pts_in_voxel, start, end, img_ptr, &g_voxel_for_render, obs_time );
         }
-        g_cost_time_logger.record( tim, "Com" );
+        // g_cost_time_logger.record( tim, "Com" );
         tim.tic( "wait_Opm" );
         for ( int thr = 0; thr < num_of_threads; thr++ )
         {
             double cost_time = results[ thr ].get();
-            cost_time_logger_render.record( std::string( "T_" ).append( std::to_string( thr ) ), cost_time );
+            // cost_time_logger_render.record( std::string( "T_" ).append( std::to_string( thr ) ), cost_time );
         }
-        g_cost_time_logger.record( tim, "wait_Opm" );
-        cost_time_logger_render.record( tim, "wait_Opm" );
+        // g_cost_time_logger.record( tim, "wait_Opm" );
+        // cost_time_logger_render.record( tim, "wait_Opm" );
     }
     // ANCHOR - record photometric error
     // printf( "Image frame = %d, count = %d, acc_PT = %.3f, avr_PE = %.3f\r\n", img_ptr->m_frame_idx, long( img_ptr->m_acc_render_count ),
     //         double( img_ptr->m_acc_photometric_error), double( img_ptr->m_acc_photometric_error) / long(img_ptr->m_acc_render_count ) );
-    if ( photometric_fp == nullptr )
-    {
-        photometric_fp = fopen( std::string( Common_tools::get_home_folder().c_str() ).append( "/r3live_output/photometric.log" ).c_str(), "w+" );
-    }
-    if ( long( img_ptr->m_acc_render_count ) != 0 )
-    {
-        fprintf( photometric_fp, "%f %d %d %f %f\r\n", img_ptr->m_timestamp, img_ptr->m_frame_idx, long( img_ptr->m_acc_render_count ),
-                 double( img_ptr->m_acc_photometric_error ) / long( img_ptr->m_acc_render_count ), double( img_ptr->m_acc_photometric_error ) );
-        fflush( photometric_fp );
-    }
+    // if ( photometric_fp == nullptr ) {
+    //     photometric_fp = fopen( std::string( Common_tools::get_home_folder().c_str() ).append( "/r3live_output/photometric.log" ).c_str(), "w+" );
+    // }
+    // if ( long( img_ptr->m_acc_render_count ) != 0 ) {
+    //     fprintf( photometric_fp, "%f %d %d %f %f\r\n", img_ptr->m_timestamp, img_ptr->m_frame_idx, long( img_ptr->m_acc_render_count ),
+    //              double( img_ptr->m_acc_photometric_error ) / long( img_ptr->m_acc_render_count ), double( img_ptr->m_acc_photometric_error ) );
+    //     fflush( photometric_fp );
+    // }
     // img_ptr->release_image();
-    cost_time_logger_render.flush_d();
-    g_cost_time_logger.record( tim, "Render_mp" );
-    g_cost_time_logger.record( "Pts_num_r", render_pts_count );
+    // cost_time_logger_render.flush_d();
+    // g_cost_time_logger.record( tim, "Render_mp" );
+    // g_cost_time_logger.record( "Pts_num_r", render_pts_count );
 }
 //! SECTION
 
@@ -772,12 +654,10 @@ void Global_map::selection_points_for_projection( std::shared_ptr< Image_frame >
 {
     Common_tools::Timer tim;
     tim.tic();
-    if ( pc_out_vec != nullptr )
-    {
+    if ( pc_out_vec != nullptr ) {
         pc_out_vec->clear();
     }
-    if ( pc_2d_out_vec != nullptr )
-    {
+    if ( pc_2d_out_vec != nullptr ) {
         pc_2d_out_vec->clear();
     }
     Hash_map_2d< int, int >   mask_index;
@@ -796,15 +676,12 @@ void Global_map::selection_points_for_projection( std::shared_ptr< Image_frame >
     m_mutex_m_box_recent_hitted->lock();
     std::unordered_set< std::shared_ptr< RGB_Voxel > > boxes_recent_hitted = m_voxels_recent_visited;
     m_mutex_m_box_recent_hitted->unlock();
-    if ( ( !use_all_pts ) && boxes_recent_hitted.size() )
-    {
+    if ( ( !use_all_pts ) && boxes_recent_hitted.size() ) {
         m_mutex_rgb_pts_in_recent_hitted_boxes->lock();
 
-        for ( Voxel_set_iterator it = boxes_recent_hitted.begin(); it != boxes_recent_hitted.end(); it++ )
-        {
+        for ( Voxel_set_iterator it = boxes_recent_hitted.begin(); it != boxes_recent_hitted.end(); it++ ) {
             // pts_for_projection.push_back( (*it)->m_pts_in_grid.back() );
-            if ( ( *it )->m_pts_in_grid.size() )
-            {
+            if ( ( *it )->m_pts_in_grid.size() ) {
                 //  pts_for_projection.push_back( (*it)->m_pts_in_grid.back() );
                 pts_for_projection.push_back( ( *it )->m_pts_in_grid[ 0 ] );
                 // pts_for_projection.push_back( ( *it )->m_pts_in_grid[ ( *it )->m_pts_in_grid.size()-1 ] );
@@ -812,36 +689,28 @@ void Global_map::selection_points_for_projection( std::shared_ptr< Image_frame >
         }
 
         m_mutex_rgb_pts_in_recent_hitted_boxes->unlock();
-    }
-    else
-    {
+    } else {
         pts_for_projection = m_rgb_pts_vec;
     }
     int pts_size = pts_for_projection.size();
-    for ( int pt_idx = 0; pt_idx < pts_size; pt_idx += skip_step )
-    {
+    for ( int pt_idx = 0; pt_idx < pts_size; pt_idx += skip_step ) {
         vec_3  pt = pts_for_projection[ pt_idx ]->get_pos();
         double depth = ( pt - image_pose->m_pose_w2c_t ).norm();
-        if ( depth > m_maximum_depth_for_projection )
-        {
+        if ( depth > m_maximum_depth_for_projection ) {
             continue;
         }
-        if ( depth < m_minimum_depth_for_projection )
-        {
+        if ( depth < m_minimum_depth_for_projection ) {
             continue;
         }
         bool res = image_pose->project_3d_point_in_this_img( pt, u_f, v_f, nullptr, 1.0 );
-        if ( res == false )
-        {
+        if ( res == false ) {
             continue;
         }
         u = std::round( u_f / minimum_dis ) * minimum_dis; // Why can not work
         v = std::round( v_f / minimum_dis ) * minimum_dis;
-        if ( ( !mask_depth.if_exist( u, v ) ) || mask_depth.m_map_2d_hash_map[ u ][ v ] > depth )
-        {
+        if ( ( !mask_depth.if_exist( u, v ) ) || mask_depth.m_map_2d_hash_map[ u ][ v ] > depth ) {
             acc++;
-            if ( mask_index.if_exist( u, v ) )
-            {
+            if ( mask_index.if_exist( u, v ) ) {
                 // erase old point
                 int old_idx = mask_index.m_map_2d_hash_map[ u ][ v ];
                 blk_rej++;
@@ -855,19 +724,15 @@ void Global_map::selection_points_for_projection( std::shared_ptr< Image_frame >
         }
     }
 
-    if ( pc_out_vec != nullptr )
-    {
-        for ( auto it = map_idx_draw_center.begin(); it != map_idx_draw_center.end(); it++ )
-        {
+    if ( pc_out_vec != nullptr ) {
+        for ( auto it = map_idx_draw_center.begin(); it != map_idx_draw_center.end(); it++ ) {
             // pc_out_vec->push_back(m_rgb_pts_vec[it->first]);
             pc_out_vec->push_back( pts_for_projection[ it->first ] );
         }
     }
 
-    if ( pc_2d_out_vec != nullptr )
-    {
-        for ( auto it = map_idx_draw_center.begin(); it != map_idx_draw_center.end(); it++ )
-        {
+    if ( pc_2d_out_vec != nullptr ) {
+        for ( auto it = map_idx_draw_center.begin(); it != map_idx_draw_center.end(); it++ ) {
             pc_2d_out_vec->push_back( map_idx_draw_center_raw_pose[ it->first ] );
         }
     }
@@ -937,8 +802,7 @@ vec_3 Global_map::smooth_pts( RGB_pt_ptr& rgb_pt, double smooth_factor, double k
     std::vector< float > search_pt_dis;
     vec_3 pt_vec = rgb_pt->get_pos();
     vec_3  pt_vec_neighbor = vec_3( 0, 0, 0 );
-    if(maximum_smooth_dis <= 0)
-    {
+    if(maximum_smooth_dis <= 0) {
         maximum_smooth_dis = m_voxel_resolution * 0.8;
     }
     m_kdtree.Nearest_Search( KDtree_pt(pt_vec), knn,  kdtree_pt_vec, search_pt_dis  );

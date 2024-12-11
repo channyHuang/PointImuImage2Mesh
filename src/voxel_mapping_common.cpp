@@ -685,8 +685,14 @@ void Voxel_mapping::read_ros_parameters( ros::NodeHandle &nh )
     nh.param< bool >( "feature_extract_enable", m_p_pre->feature_enabled, false );
     nh.param< vector< double > >( "mapping/extrinsic_T", m_extrin_T, vector< double >() );
     nh.param< vector< double > >( "mapping/extrinsic_R", m_extrin_R, vector< double >() );
+    // camera
+    nh.param<int>("camera/width", m_vio_image_width, 1226);
+    nh.param<int>("camera/height", m_vio_image_heigh, 370);
+    nh.param<vector<double>>("camera/K", m_K, vector< double >(9, 1));
+    nh.param<vector<double>>("camera/dist", m_dist, vector< double >(5, 0));
     nh.param< vector< double > >( "camera/Pcl", m_camera_extrin_T, vector< double >() );
     nh.param< vector< double > >( "camera/Rcl", m_camera_extrin_R, vector< double >() );
+
     nh.param< int >( "grid_size", m_grid_size, 40 );
     nh.param< int >( "patch_size", m_patch_size, 4 );
     nh.param< double >( "outlier_threshold", m_outlier_threshold, 100 );

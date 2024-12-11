@@ -60,7 +60,7 @@ Dr. Fu Zhang < fuzhang@hku.hk >.
 // #include "assert.h"
 #define R3LIVE_MAP_MAJOR_VERSION 1
 #define R3LIVE_MAP_MINOR_VERSION 0
-#define IF_DBG_COLOR 0
+#define IF_DBG_COLOR 1
 extern cv::RNG g_rng;
 extern double  g_initial_camera_exp_tim;
 extern double  g_camera_exp_tim_lower_bound;
@@ -89,7 +89,7 @@ class RGB_pts
 #else
     double m_pos[ 3 ] = { 0 };
     double m_pos_aft_smooth[ 3 ] = { 0 };
-    double m_rgb[ 3 ] = { 0 };
+    double m_rgb[ 3 ] = { 255, 255, 255 };
     double m_cov_rgb[ 3 ] = { 0 };
     int    m_N_rgb = 0;
     int    m_pt_index = 0;
@@ -108,9 +108,9 @@ class RGB_pts
 
     void clear()
     {
-        m_rgb[ 0 ] = 0;
-        m_rgb[ 1 ] = 0;
-        m_rgb[ 2 ] = 0;
+        m_rgb[ 0 ] = 255;
+        m_rgb[ 1 ] = 255;
+        m_rgb[ 2 ] = 255;
         m_N_rgb = 0;
         m_obs_dis = 0;
         m_last_obs_time = 0;
@@ -146,7 +146,7 @@ class RGB_pts
     mat_3_3        get_rgb_cov();
     pcl::PointXYZI get_pt();
     // void update_gray( const double gray, double obs_dis = 1.0 );
-    int update_rgb( const vec_3 &rgb, const double obs_dis, const vec_3 obs_sigma, const double obs_time, const double current_exposure_time );
+    int update_rgb( const vec_3 &rgb, const double obs_dis, const vec_3 obs_sigma, const double obs_time);
 
   private:
     friend class boost::serialization::access;
@@ -281,7 +281,7 @@ struct Global_map
     void render_with_a_image( std::shared_ptr< Image_frame > &img_ptr, int if_select = 1 );
     void selection_points_for_projection( std::shared_ptr< Image_frame > &image_pose, std::vector< std::shared_ptr< RGB_pts > > *pc_out_vec = nullptr,
                                           std::vector< cv::Point2f > *pc_2d_out_vec = nullptr, double minimum_dis = 5, int skip_step = 1,
-                                          int use_all_pts = 0 );
+                                          int use_all_pts = 1 );
     void save_to_pcd( std::string dir_name, std::string file_name = std::string( "/rgb_pt" ), int save_pts_with_views = 3 );
     void save_and_display_pointcloud( std::string dir_name = std::string( "/home/ziv/temp/" ), std::string file_name = std::string( "/rgb_pt" ),
                                       int save_pts_with_views = 3 );

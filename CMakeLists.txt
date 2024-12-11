@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ImMesh)
+project(PointImuImage2Mesh)
 
 SET(CMAKE_BUILD_TYPE "Release")
 
@@ -107,11 +107,12 @@ add_definitions(-DFONT_DIR=\"${FONTPATH}/\")
 set(SHADERPATH ${CMAKE_CURRENT_SOURCE_DIR}/src/shader/)
 add_definitions(-DSHADER_DIR=\"${SHADERPATH}/\")
 
-add_executable(ImMesh_mapping
+add_executable(PointImuImage2Mesh_mapping
   src/ImMesh_node.cpp
   src/ImMesh_mesh_reconstruction.cpp
   include/ikd-Tree/ikd_Tree.cpp
   src/voxel_mapping.cpp
+  src/voxel_mapping_vio.cpp
   src/voxel_mapping_common.cpp
   src/voxel_loc.cpp
   src/preprocess.cpp
@@ -133,7 +134,7 @@ add_executable(ImMesh_mapping
   ./src/tools/imgui/imgui_tables.cpp
   ./src/tools/imgui/imgui_widgets.cpp
 )
-target_link_libraries(ImMesh_mapping 
+target_link_libraries(PointImuImage2Mesh_mapping 
                       ${catkin_LIBRARIES} 
                       ${PCL_LIBRARIES} 
                       ${PYTHON_LIBRARIES}

@@ -11,6 +11,8 @@ void init_openGL_shader();
 void draw_triangle( const Cam_view &  gl_cam);
 void draw_camera_trajectory(int current_frame_idx, float pt_disp_size = 5);
 void draw_camera_pose( int current_frame_idx, float pt_disp_size = 5, float display_cam_size = 1.0);
+// 显示当前激光帧点云g_eigen_vec_vec
 void display_current_LiDAR_pts( int current_frame_idx, double pts_size, vec_4f color = vec_4f( 1.0, 1.0, 1.0, 0.5 ) );
 void display_reinforced_LiDAR_pts(  std::vector< vec_3f > & pt_vec, double pts_size, vec_3f color = vec_3f (1.0, 0.0, 1.0) );
+// 同步线程，同步更新点到显示界面
 void service_refresh_and_synchronize_triangle(double sleep_time = 1);

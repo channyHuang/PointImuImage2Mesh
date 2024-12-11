@@ -285,6 +285,10 @@ struct StatesGroup
     V3D                                    bias_a;  // accelerator bias
     V3D                                    gravity; // the estimated gravity acceleration
     Matrix< double, DIM_STATE, DIM_STATE > cov;     // states covariance
+
+    Eigen::Matrix< double, 4, 1 >          cam_intrinsic;
+    Eigen::Matrix3d rot_ext_i2c;
+    Eigen::Vector3d pos_ext_i2c;
 };
 
 template < typename T >

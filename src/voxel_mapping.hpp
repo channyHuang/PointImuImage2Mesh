@@ -53,6 +53,9 @@ different license.
 #include "ikd-Tree/ikd_Tree.h"
 #include "voxel_loc.hpp"
 
+#include <future>
+#include "./meshing/r3live/rgbmap_tracker.hpp"
+
 #define INIT_TIME ( 0.0 )
 #define MAXN ( 360000 )
 #define PUBFRAME_PERIOD ( 20 )
@@ -287,6 +290,20 @@ class Voxel_mapping
     std::string m_pointcloud_file_name = std::string( " " );
     // PointCloudXYZRGB::Ptr pcl_wait_pub_RGB(new PointCloudXYZRGB(500000, 1));
 
+    // vio params
+    int g_camera_frame_idx = 0;
+    Eigen::Matrix3d g_cam_K; // camera intrinsic
+    Eigen::Matrix<double, 5, 1> g_cam_dist;
+    vector<double> m_K;
+    vector<double> m_dist;
+    int m_vio_image_width = 1226;
+    int m_vio_image_heigh = 370;
+    double m_vio_scale_factor = 1.0;
+    cv::Mat m_ud_map1, m_ud_map2;
+    mutex                              m_camera_data_mutex;
+    std::shared_ptr<std::shared_future<void> > m_render_thread = nullptr;
+    std::mutex  m_mutex_lio_process;
+
     Voxel_mapping()
     {
         m_extrin_T = std::vector< double >( 3, 0.0 );
@@ -412,4 +429,13 @@ class Voxel_mapping
     void lio_state_estimation( StatesGroup &state_propagat );
     void init_ros_node();
     int  service_LiDAR_update();
+
+    // vio
+    void image_cbk(const sensor_msgs::ImageConstPtr &msg);
+    void image_comp_cbk( const sensor_msgs::CompressedImageConstPtr &msg ) ;
+    void process_image( cv::Mat &temp_img, double msg_time );
+    void set_image_pose( std::shared_ptr< Image_frame > &image_pose, const StatesGroup &state_l2w );
+    void wait_render_thread_finish();
+    void service_VIO_update();
+    void showImage(cv::Mat &mOriginImg, char* costTimeText);
 };
