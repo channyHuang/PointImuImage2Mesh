@@ -9,25 +9,28 @@ debug : 0
 min_img_count : 150000
 grid_size : 40
 patch_size : 8
-img_enable : 0
+img_enable : 1
 lidar_enable : 1
 outlier_threshold : 78 # 78 100 156
 img_point_cov : 1000 #100
 laser_point_cov : 0.001 #0.001
 
 common:
-    lid_topic:  "/velodyne_points"
-    imu_topic:  "/imu_raw"
+    # lid_topic:  "/velodyne_points"
+    # imu_topic:  "/imu_raw"
+
+    lid_topic: "/velodyne_points"
+    imu_topic: "/imu_raw"
 
 preprocess:
     lidar_type: 6               # Velodyne32 Lidar
-    scan_line: 32
+    scan_line: 24
     timestamp_unit: 2
     blind: 1 # blind x m disable
     calib_laser: false              # true for KITTI Odometry dataset
 
 mapping:
-    imu_en: false
+    imu_en: true
     imu_int_frame: 30
     acc_cov: 0.5
     gyr_cov: 0.3
@@ -52,17 +55,29 @@ voxel:
 
 
 camera:
-    img_topic: /image_left
-    width: 1226
-    height: 370
-    K: [1226, 0, 613,
-        0, 370, 185,
-        0, 0, 1]
-    dist: [0, 0, 0, 0, 0]
-    Rcl: [ 0.000910902,   -0.999994,  0.00343779, # new extrinsic
-          -0.0101394,     -0.00344672,   -0.999943,
-           0.999948,       0.000875869,  -0.0101423]
-    Pcl: [0.051708, -0.004601, -0.023075]
+    # img_topic: /image_left
+    # width: 1226
+    # height: 370
+    # K: [1226, 0, 613,
+    #     0, 370, 185,
+    #     0, 0, 1]
+    # dist: [0, 0, 0, 0, 0]
+    # Rcl: [ 0.000910902,   -0.999994,  0.00343779, # new extrinsic
+    #       -0.0101394,     -0.00344672,   -0.999943,
+    #        0.999948,       0.000875869,  -0.0101423]
+    # Pcl: [0.051708, -0.004601, -0.023075]
+
+    img_topic: /image_1/compressed
+    width: 1920
+    height: 1080
+    K: [1.019725357323183e+03,  0.0,        9.530492032695936e+02,
+     0.0,         1.020588984973907e+03, 5.432658976871853e+02,
+     0.0,         0.0,        1.0]
+    dist: [0.025681217868279, -0.018056404837187, 0.0, 0.0, 0.000000]
+    Rcl: [-0.001046455132281, -0.999998679272604,  0.001243537173987,
+     0.226264330384285, -0.001448063248386, -0.974064862269746,
+     0.974065376516078, -7.379470683164596e-04, 0.226265546884003]
+    Pcl: [-0.063340671673354, -0.009431907279248, -0.108528849005723]
     
 publish:
     path_en:  false

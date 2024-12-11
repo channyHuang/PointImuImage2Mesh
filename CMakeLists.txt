@@ -123,6 +123,8 @@ add_executable(PointImuImage2Mesh_mapping
   ./src/meshing/r3live/triangle.cpp
   ./src/meshing/r3live/image_frame.cpp
   ./src/meshing/r3live/pointcloud_rgbd.cpp
+  ./src/meshing/r3live/rgbmap_tracker.cpp
+  ./src/meshing/optical_flow/lkpyramid.cpp
   ./src/tools/openGL_libs/openGL_camera.cpp
   ./src/tools/openGL_libs/openGL_camera_view.cpp
   ./src/tools/openGL_libs/glad.c

@@ -148,9 +148,8 @@ POINT_CLOUD_REGISTER_POINT_STRUCT( xt32_ros::Point,
                                                                                                                  timestamp )( uint16_t, ring, ring ) )
 /*****************/
 
-class Preprocess
-{
-  public:
+class Preprocess {
+public:
     //   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     Preprocess();
@@ -164,11 +163,10 @@ class Preprocess
     PointCloudXYZI    pl_full, pl_corn, pl_surf;
     PointCloudXYZI    pl_buff[ 128 ]; // maximum 128 line lidar
     vector< orgtype > typess[ 128 ];  // maximum 128 line lidar
-    int               lidar_type, point_filter_num, N_SCANS, time_unit;
-    double            blind, blind_sqr;
+    int               lidar_type = 6, point_filter_num = 10, N_SCANS = 24, time_unit = 2;
+    double            blind = 1, blind_sqr;
     double            time_unit_scale;
-    bool              feature_enabled, given_offset_time, calib_laser;
-    ros::Publisher    pub_full, pub_surf, pub_corn;
+    bool              feature_enabled = true, given_offset_time, calib_laser = false;
 
   private:
     void avia_handler( const livox_ros_driver::CustomMsg::ConstPtr &msg );

@@ -61,6 +61,7 @@ class Triangle_facet_shader
     std::vector< vec_3f >     m_pts_pos_vector;
     std::vector< vec_3f >     m_pts_normal_vector;
     std::vector< float >      m_pts_color_vector;
+    std::vector< unsigned int >        m_pts_index_vector;
     bool                      m_if_draw_face = true;
     unsigned int              m_vbo[ 3 ], m_vao;
     unsigned char             m_pt_stencil_id = 0xF0;
@@ -69,7 +70,6 @@ class Triangle_facet_shader
     int                       m_edge_size = 0;
     int                       m_if_draw_edge = true;
     int                       m_rviz_like_cluster_number = 100;
-
     void init( std::string shader_path )
     {
         std::string vertex_shader = std::string( shader_path ).append( "triangle_facets.vs" );
@@ -120,13 +120,10 @@ class Triangle_facet_shader
         if_have_init_data_buffer = true;
     }
 
-    void set_color_by_axis(vec_3f * axis_min_max = nullptr, int select_axis = 2)
-    {
-        if ( axis_min_max != nullptr )
-        {
+    void set_color_by_axis(vec_3f * axis_min_max = nullptr, int select_axis = 2) {
+        if ( axis_min_max != nullptr ) {
             m_pts_color_vector.resize( m_pts_pos_vector.size() );
-            for ( int i = 0; i < m_pts_pos_vector.size(); i++ )
-            {
+            for ( int i = 0; i < m_pts_pos_vector.size(); i++ ) {
                 float val_min = axis_min_max[ 0 ][ select_axis ];
                 float val_max = axis_min_max[ 1 ][ select_axis ];
                 float val = (m_pts_pos_vector[ i ][ select_axis ] - val_min) / (val_max - val_min);
@@ -139,13 +136,11 @@ class Triangle_facet_shader
         }
     }
 
-    void set_pointcloud( std::vector< eigen_vec_f<3> >& _pts_pos, vec_3f * axis_min_max = nullptr, int select_axis = 2)
-    {
+    void set_pointcloud( std::vector< eigen_vec_f<3> >& _pts_pos, vec_3f * axis_min_max = nullptr, int select_axis = 2) {
         m_pts_pos_vector.resize(_pts_pos.size());
         m_pts_normal_vector.resize(_pts_pos.size());
         m_pts_color_vector.resize( _pts_pos.size() );
-        for ( int i = 0; i < _pts_pos.size(); i+=3 )
-        {
+        for ( int i = 0; i < _pts_pos.size(); i+=3 ) {
             vec_3f normal = ( _pts_pos[ i + 1 ] - _pts_pos[ i ] ).cross( _pts_pos[ i + 2 ] - _pts_pos[ i ] );
             for ( int j = 0; j < 3; j++ )
             {
@@ -155,6 +150,28 @@ class Triangle_facet_shader
                     m_pts_color_vector[ i + j ] = ( 255 << 16 ) | ( 255 << 8 ) | 255;
             }
         }
+        set_color_by_axis(axis_min_max, select_axis);
+        init_data_buffer();
+    }
+
+    void set_pointcloud( std::vector< eigen_vec_f<3> >& _pts_pos, std::vector<unsigned int> &_pts_index, std::vector<vec_3f> &_pts_normal, vec_3f * axis_min_max = nullptr, int select_axis = 2) {
+        m_pts_pos_vector.resize(_pts_pos.size());
+        m_pts_normal_vector.resize(_pts_normal.size());
+        m_pts_color_vector.resize( _pts_pos.size() );
+        m_pts_index_vector.resize(_pts_index.size());
+        for ( int i = 0; i < _pts_pos.size(); ++i) {
+            m_pts_pos_vector[ i ] = _pts_pos[ i ];
+            if(axis_min_max == nullptr) {
+                m_pts_color_vector[ i ] = ( 255 << 16 ) | ( 255 << 8 ) | 255;
+            }
+        }
+        for (int i = 0; i < _pts_index.size(); ++i) {
+            m_pts_index_vector[i] = _pts_index[i];
+        }
+        for (int i = 0; i < _pts_normal.size(); ++i) {
+            m_pts_normal_vector[i] = _pts_normal[i];
+        }
+
         set_color_by_axis(axis_min_max, select_axis);
         init_data_buffer();
     }
@@ -173,7 +190,29 @@ class Triangle_facet_shader
             }
         }
         init_data_buffer();
-    }        
+    }    
+
+     void set_pointcloud( std::vector< eigen_vec_f<3> >& _pts_pos, std::vector<unsigned int> &_pts_index, std::vector<vec_3f> &_pts_normal,  std::vector<eigen_vec<3>> &_pts_color) {
+        m_pts_pos_vector.resize(_pts_pos.size());
+        m_pts_normal_vector.resize(_pts_normal.size());
+        m_pts_color_vector.resize( _pts_color.size() );
+        m_pts_index_vector.resize(_pts_index.size());
+        for ( int i = 0; i < _pts_pos.size(); ++i) {
+            m_pts_pos_vector[ i ] = _pts_pos[ i ];
+        }
+        for (int i = 0; i < _pts_index.size(); ++i) {
+            m_pts_index_vector[i] = _pts_index[i];
+        }
+        for (int i = 0; i < _pts_normal.size(); ++i) {
+            m_pts_normal_vector[i] = _pts_normal[i];
+            m_pts_normal_vector[i].normalize();
+        }
+        for (int i = 0; i < _pts_color.size(); ++i) {
+            m_pts_color_vector[ i ] = ( (int)(_pts_color[i ][0]) << 16 ) | ( (int)(_pts_color[i ][1]) << 8 ) | (int)(_pts_color[i ][2]);
+        }
+
+        init_data_buffer();
+    }
 
     void draw( glm::mat4 proj_mat, glm::mat4 pose_mat )
     {
@@ -205,8 +244,7 @@ class Triangle_facet_shader
         // cout << "================================" << endl;
         // render boxes
         glBindVertexArray( m_vao );
-        if(m_if_draw_face)
-        {
+        if(m_if_draw_face) {
             m_shader_facet->setBool("if_light", true);
             glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
         }
@@ -216,6 +254,7 @@ class Triangle_facet_shader
             glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
         }
         glDrawArrays( GL_TRIANGLES, 0, m_pts_pos_vector.size() );
+        // glDrawElements(GL_TRIANGLES, m_pts_index_vector.size(), GL_UNSIGNED_INT, m_pts_index_vector.data());
         glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
         glDepthFunc( GL_LESS );
 

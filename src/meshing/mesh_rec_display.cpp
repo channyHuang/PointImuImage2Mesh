@@ -51,6 +51,8 @@ struct Region_triangles_shader
 {
     std::vector< vec_3f >               m_triangle_pt_vec;
     std::vector< vec_3 >                m_triangle_pt_color;
+    std::vector<unsigned int>           m_triangle_pt_index;
+    std::vector<vec_3f>                 m_triangle_pt_normal;
     Common_tools::Triangle_facet_shader m_triangle_facet_shader;
     int                                 m_need_init_shader = true;
     int                                 m_need_refresh_shader = true;
@@ -68,8 +70,11 @@ struct Region_triangles_shader
         std::unique_lock< std::mutex > lock( *m_mutex_ptr );
         if ( m_if_set_color == 1) {
             m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec, g_axis_min_max, 2 );
+            // m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec, m_triangle_pt_index, m_triangle_pt_normal, g_axis_min_max, 2 );
+            // m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec, m_triangle_pt_index, m_triangle_pt_normal, m_triangle_pt_color);
         } else if (m_if_set_color == 0) {
-            m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec );
+            m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec);
+            // m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec, m_triangle_pt_index, m_triangle_pt_normal );
         } else {
             m_triangle_facet_shader.set_pointcloud( m_triangle_pt_vec, m_triangle_pt_color);
         }
@@ -103,6 +108,62 @@ struct Region_triangles_shader
         }
     }
 
+    // void unparse_triangle_set_to_vector( const Triangle_set &tri_angle_set) {
+    //     std::unique_lock< std::mutex > lock( *m_mutex_ptr );
+    //     unsigned int count = 0;
+    //     std::unordered_map<int, unsigned int> vPtsIdxMap;
+    //     m_triangle_pt_index.clear();
+    //     m_triangle_pt_vec.clear();
+    //     m_triangle_pt_color.clear();
+    //     m_triangle_pt_normal.clear();
+
+    //     vec_3 camera_pos = g_gl_camera.m_gl_cam.m_camera_pos + vec_3(0, 0, 2);
+
+    //     for ( Triangle_set::iterator it = tri_angle_set.begin(); it != tri_angle_set.end(); it++ ) {
+    //         vec_3f pts[3];
+    //         for ( size_t pt_idx = 0; pt_idx < 3; pt_idx++ ) {
+    //             int nCurIdx = ( *it )->m_tri_pts_id[ pt_idx ] ;
+    //             if ( g_map_rgb_pts_mesh.m_rgb_pts_vec[ ( *it )->m_tri_pts_id[ pt_idx ] ]->m_smoothed == false ) {
+    //                 g_map_rgb_pts_mesh.smooth_pts( g_map_rgb_pts_mesh.m_rgb_pts_vec[ ( *it )->m_tri_pts_id[ pt_idx ] ], g_ply_smooth_factor,
+    //                                                g_ply_smooth_k, g_kd_tree_accept_pt_dis );
+    //             }
+    //         }
+
+    //         vec_3 pt_a = g_map_rgb_pts_mesh.m_rgb_pts_vec[ ( *it )->m_tri_pts_id[ 0 ] ]->get_pos( 1 );
+    //         vec_3 pt_b = g_map_rgb_pts_mesh.m_rgb_pts_vec[ ( *it )->m_tri_pts_id[ 1 ] ]->get_pos( 1 );
+    //         vec_3 pt_c = g_map_rgb_pts_mesh.m_rgb_pts_vec[ ( *it )->m_tri_pts_id[ 2 ] ]->get_pos( 1 );
+
+    //         vec_3 normal = ( pt_b - pt_a ).cross( pt_c - pt_a);
+    //         // float fDotValue = normal.dot(camera_pos - pt_a);
+    //         // if (fDotValue <= 0) normal = -normal;
+    //         if (normal.dot((*it)->m_normal) >= 0) {
+    //             normal = -normal;
+    //         }
+
+    //         for ( size_t pt_idx = 0; pt_idx < 3; pt_idx++ ) {
+    //             int nCurIdx = ( *it )->m_tri_pts_id[ pt_idx ] ;
+    //             auto itr = vPtsIdxMap.find(nCurIdx);
+    //             if (itr == vPtsIdxMap.end()) {
+    //                 vec_3 pt = g_map_rgb_pts_mesh.m_rgb_pts_vec[nCurIdx]->get_pos(1);
+    //                 m_triangle_pt_vec.push_back(pt.cast<float>());
+    //                 m_triangle_pt_color.push_back(g_map_rgb_pts_mesh.m_rgb_pts_vec[nCurIdx]->get_rgb());
+    //                 vPtsIdxMap[nCurIdx] = count;
+    //                 m_triangle_pt_index.push_back(count);
+    //                 m_triangle_pt_normal.push_back(vec_3f(0, 0, 0));
+    //                 count++;
+    //             } else {
+    //                 m_triangle_pt_index.push_back(itr->second);
+    //             }
+    //         }
+
+    //         for ( size_t pt_idx = 0; pt_idx < 3; pt_idx++ ) {
+    //             int nCurIdx = ( *it )->m_tri_pts_id[ pt_idx ] ;
+    //             auto itr = vPtsIdxMap.find(nCurIdx);
+    //             m_triangle_pt_normal[itr->second] += vec_3f(normal.x(), normal.y(), normal.z());
+    //         }
+    //     }
+    // }
+
     void get_axis_min_max( vec_3f *axis_min_max = nullptr ) {
         if ( axis_min_max != nullptr ) {
             for ( int i = 0; i < m_triangle_pt_vec.size(); i++ ) {
@@ -134,7 +195,7 @@ struct Region_triangles_shader
         }
     }
 
-    void synchronized_from_region( Sync_triangle_set *sync_triangle_set, vec_3f *axis_min_max = nullptr ) {
+    void synchronized_from_region( Sync_triangle_set *sync_triangle_set, vec_3f *axis_min_max = nullptr) {
         if ( sync_triangle_set == nullptr ) {
             cout << "sync_triangle_set == nullptr" << endl;
             return;
@@ -143,7 +204,7 @@ struct Region_triangles_shader
         if ( sync_triangle_set->m_if_required_synchronized ) {
             Triangle_set triangle_set;
             sync_triangle_set->get_triangle_set( triangle_set, true );
-            unparse_triangle_set_to_vector( triangle_set );
+            unparse_triangle_set_to_vector( triangle_set);
             get_axis_min_max( axis_min_max );
             std::this_thread::sleep_for( std::chrono::microseconds( 100 ) );
             m_need_refresh_shader = true;
@@ -229,7 +290,7 @@ void synchronize_triangle_list_for_disp() {
             if(if_force_refresh) {
                 sync_triangle_set_ptr->m_if_required_synchronized = true;
             }
-            region_triangles_shader_ptr->synchronized_from_region( sync_triangle_set_ptr, g_axis_min_max );
+            region_triangles_shader_ptr->synchronized_from_region( sync_triangle_set_ptr, g_axis_min_max);
         }
     }
     if ( g_force_refresh_triangle ) {
@@ -251,7 +312,7 @@ void draw_triangle( const Cam_view &gl_cam ) {
     int region_size = g_region_triangles_shader_vec.size();
     for ( int region_idx = 0; region_idx < region_size; region_idx++ ) {
         g_region_triangles_shader_vec[ region_idx ]->m_triangle_facet_shader.m_if_draw_face = g_display_face;
-        g_region_triangles_shader_vec[ region_idx ]->m_if_set_color = (g_mesh_if_color ? 2 : 1);
+        g_region_triangles_shader_vec[ region_idx ]->m_if_set_color = (g_mesh_if_color ? 1 : 0);
         g_region_triangles_shader_vec[ region_idx ]->draw( gl_cam );
     }
 }

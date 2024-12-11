@@ -70,6 +70,12 @@ different license.
 #include "use-ikfom.hpp"
 #endif
 
+#if ENABLE_CAMERA_OBS
+#define DIM_OF_STATES (29) // with vio obs
+#else
+#define DIM_OF_STATES (18) // For faster speed.
+#endif
+
 /// *************Preconfiguration
 
 // #define MAX_INI_COUNT (10)
@@ -105,6 +111,8 @@ class ImuProcess
   void Process2(LidarMeasureGroup &lidar_meas, StatesGroup &stat, PointCloudXYZI::Ptr cur_pcl_un_);
   void UndistortPcl(LidarMeasureGroup &lidar_meas, StatesGroup &state_inout, PointCloudXYZI &pcl_out);
   #endif
+
+  StatesGroup imu_preintegration(const StatesGroup & state_inout, std::deque<sensor_msgs::Imu::ConstPtr> & v_imu,  double end_pose_dt = 0);
 
   ros::NodeHandle nh;
   ofstream fout_imu;

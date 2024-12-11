@@ -221,21 +221,16 @@ class Triangle_manager
     }
 
     template < typename T >
-    Triangle_set find_relative_triangulation_combination( std::set< T >& set_index )
-    {
+    Triangle_set find_relative_triangulation_combination( std::set< T >& set_index ) {
         // std::set< T >::iterator it;
         Triangle_set triangle_ptr_list;
         // m_mutex_triangle_hash.lock();
-        for ( typename std::set< T >::iterator it = set_index.begin(); it != set_index.end(); it++ )
-        {
-            if ( m_map_pt_triangle.find( *it ) != m_map_pt_triangle.end() )
-            {
-                for ( Triangle_set::iterator tri_it = m_map_pt_triangle[ *it ].begin(); tri_it != m_map_pt_triangle[ *it ].end(); tri_it++ )
-                {
+        for ( typename std::set< T >::iterator it = set_index.begin(); it != set_index.end(); it++ ) {
+            if ( m_map_pt_triangle.find( *it ) != m_map_pt_triangle.end() ) {
+                for ( Triangle_set::iterator tri_it = m_map_pt_triangle[ *it ].begin(); tri_it != m_map_pt_triangle[ *it ].end(); tri_it++ ) {
                     if ( ( set_index.find( ( *tri_it )->m_tri_pts_id[ 0 ] ) != set_index.end() ) &&
                          ( set_index.find( ( *tri_it )->m_tri_pts_id[ 1 ] ) != set_index.end() ) &&
-                         ( set_index.find( ( *tri_it )->m_tri_pts_id[ 2 ] ) != set_index.end() ) )
-                    {
+                         ( set_index.find( ( *tri_it )->m_tri_pts_id[ 2 ] ) != set_index.end() ) ) {
                         triangle_ptr_list.insert( *tri_it );
                     }
                 }

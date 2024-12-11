@@ -119,7 +119,8 @@ void save_to_ply_file( std::string ply_file, double smooth_factor, double knn )
     }
     pcl::toPCLPointCloud2( rgb_cloud, mesh_obj.cloud );
     // int ok = CGAL::IO::write_PLY( ply_file, pts_vec, polygons );
-    pcl::io::savePLYFileBinary( ply_file, mesh_obj );
+    // pcl::io::savePLYFileBinary( ply_file, mesh_obj );
+    pcl::io::savePLYFile( ply_file, mesh_obj );
     pcl::io::savePCDFileBinary( std::string(ply_file).append(".pcd"), rgb_cloud );
     cout << "=== Save to " << ply_file << ", finish !!! === " << endl;
 }
@@ -361,16 +362,18 @@ void correct_triangle_index( Triangle_ptr &ptr, const vec_3 &camera_center, cons
     } else {
         ptr->m_normal = vec_3( 0, 0, 1 );
     }
-    if ( short_axis.dot( pt_tri_cam ) < 0 ) {
-        short_axis *= -1;
-    }
-    if ( short_axis.dot( ptr->m_normal ) < 0 ) {
-        ptr->m_index_flip = 0;
-    } else {
-        ptr->m_index_flip = 1;
-    }
-    if ( ptr->m_normal( 2 ) < 0 ) {
-        ptr->m_normal *= -1;
-    }
+    // if ( short_axis.dot( pt_tri_cam ) < 0 ) {
+    //     short_axis *= -1;
+    // }
+    // if ( short_axis.dot( ptr->m_normal ) < 0 ) {
+    //     ptr->m_index_flip = 0;
+    // } else {
+    //     ptr->m_index_flip = 1;
+    // }
+    // if ( ptr->m_normal( 2 ) < 0 ) {
+    //     ptr->m_normal *= -1;
+    // }
+
+    ptr->m_normal = pt_tri_cam + vec_3(0, 0, 5);
 }
 

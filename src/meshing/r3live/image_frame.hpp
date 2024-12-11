@@ -182,10 +182,10 @@ struct Image_frame
     vec_3 m_pose_w2c_t = vec_3(0, 0, 0);
     eigen_q m_pose_c2w_q = eigen_q::Identity();
     vec_3 m_pose_c2w_t = vec_3(0, 0, 0);
-    vec_3 m_image_norm = vec_3(1, 0, 0);
+    vec_3 m_image_norm = vec_3(0, 0, 1); // 相机z轴在世界坐标系下的表示
     int m_if_have_set_pose = 0;
     double m_timestamp = 0.0;
-    double m_image_inverse_exposure_time = 0.01;
+    double m_image_inverse_exposure_time = 1.0; // 0.01;
     int m_have_solved_pnp = 0;
 
     // std::atomic<double> m_acc_photometric_error = {0.0};
@@ -198,8 +198,8 @@ struct Image_frame
 
     vec_3 m_pose_t;
     mat_3_3 m_pose_w2c_R;
-    int m_img_rows = 0;
-    int m_img_cols = 0;
+    int m_img_rows = 1080;
+    int m_img_cols = 1920;
     int m_frame_idx = 0;
     Eigen::Matrix<double, 2, 1> m_gama_para;
     // double m_downsample_step[MAX_DS_LAY] = {1.0, 0.5, 0.25 };
@@ -276,7 +276,10 @@ struct Image_frame
     void dump_pose_and_image( const std::string name_prefix );
     int load_pose_and_image( const std::string name_prefix, const double image_scale = 1.0, int if_load_image = 1 );
 
+    bool project_3d_to_2d( const pcl::PointXYZI & in_pt, Eigen::Matrix3d & cam_K, double &u, double &v, double& angle, const double  & scale = 1.0);
 
+    bool project_3d_point_in_this_img(const pcl::PointXYZI & in_pt, double &u, double &v, double& angle, pcl::PointXYZRGB * rgb_pt = nullptr, double intrinsic_scale = 1.0);
+    bool project_3d_point_in_this_img(const vec_3 & in_pt, double &u, double &v, double& angle, pcl::PointXYZRGB *rgb_pt = nullptr, double intrinsic_scale = 1.0);
 
   private:
     friend class boost::serialization::access;

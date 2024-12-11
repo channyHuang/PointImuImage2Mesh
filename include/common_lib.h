@@ -178,7 +178,7 @@ struct LidarMeasureGroup
     void debug_show()
     {
         int i = 0;
-        ROS_WARN( "Lidar selector debug:" );
+        // ROS_WARN( "Lidar selector debug:" );
         std::cout << "last_update_time:" << setprecision( 20 ) << this->last_update_time << endl;
         std::cout << "lidar_beg_time:" << setprecision( 20 ) << this->lidar_beg_time << endl;
         // for (auto it = this->measures.begin(); it != this->measures.end();
@@ -285,10 +285,12 @@ struct StatesGroup
     V3D                                    bias_a;  // accelerator bias
     V3D                                    gravity; // the estimated gravity acceleration
     Matrix< double, DIM_STATE, DIM_STATE > cov;     // states covariance
-
     Eigen::Matrix< double, 4, 1 >          cam_intrinsic;
-    Eigen::Matrix3d rot_ext_i2c;
-    Eigen::Vector3d pos_ext_i2c;
+
+    Eigen::Matrix3d rot_ext_i2c;                             // [18-20] Extrinsic between IMU frame to Camera frame on rotation.
+    Eigen::Vector3d pos_ext_i2c;                             // [21-23] Extrinsic between IMU frame to Camera frame on position.
+    double          td_ext_i2c_delta;
+    double          td_ext_i2c;
 };
 
 template < typename T >

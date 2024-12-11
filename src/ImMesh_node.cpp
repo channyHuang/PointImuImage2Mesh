@@ -1,44 +1,3 @@
-/* 
-This code is the implementation of our paper "ImMesh: An Immediate LiDAR Localization and Meshing Framework".
-
-The source code of this package is released under GPLv2 license. We only allow it free for personal and academic usage. 
-
-If you use any code of this repo in your academic research, please cite at least one of our papers:
-[1] Lin, Jiarong, et al. "Immesh: An immediate lidar localization and meshing framework." IEEE Transactions on Robotics
-   (T-RO 2023)
-[2] Yuan, Chongjian, et al. "Efficient and probabilistic adaptive voxel mapping for accurate online lidar odometry."
-    IEEE Robotics and Automation Letters (RA-L 2022)
-[3] Lin, Jiarong, and Fu Zhang. "R3LIVE: A Robust, Real-time, RGB-colored, LiDAR-Inertial-Visual tightly-coupled
-    state Estimation and mapping package." IEEE International Conference on Robotics and Automation (ICRA 2022)
-
-For commercial use, please contact me <ziv.lin.ljr@gmail.com> and Dr. Fu Zhang <fuzhang@hku.hk> to negotiate a 
-different license.
-
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimer in the documentation
-    and/or other materials provided with the distribution.
- 3. Neither the name of the copyright holder nor the names of its
-    contributors may be used to endorse or promote products derived from this
-    software without specific prior written permission.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
-*/
-
 #include <iostream>
 #include <stdio.h>
 #include <Eigen/Core>
@@ -83,12 +42,13 @@ different license.
 double g_maximum_pe_error = 40;
 double g_initial_camera_exp_tim = 1.0;
 
-double              g_max_incidence_angle = 90;
-Common_tools::Timer g_cost_time_logger;
+// double              g_max_incidence_angle = 90;
+// Common_tools::Timer g_cost_time_logger;
 
 Eigen::Matrix3d g_camera_K;
 
-std::string data_path_file = std::string( Common_tools::get_home_folder() ).append( "/ImMesh_output/" );
+// std::string data_path_file = std::string( Common_tools::get_home_folder() ).append( "/ImMesh_output/" );
+std::string data_path_file = "/home/IMMESH/";
 
 int    appending_pts_frame = ( int ) 5e3;
 double threshold_scale = 1.0; // normal
@@ -99,28 +59,29 @@ double g_meshing_voxel_size = 0.4 * threshold_scale;
 
 GL_camera g_gl_camera;
 
-bool                        g_if_automatic_save_mesh = false;
-float                       g_alpha = 1.0;
-extern std::vector< vec_3 > pts_of_maps;
+// bool                        g_if_automatic_save_mesh = false;
+// float                       g_alpha = 1.0;
+// extern std::vector< vec_3 > pts_of_maps;
 
-bool             show_background_color = false;
+// bool             show_background_color = false;
 float            camera_focus = 2000;
 Global_map       g_map_rgb_pts_mesh( 0 );
+Voxel_mapping voxel_mapping;
 Triangle_manager g_triangles_manager;
 
-std::vector< Image_frame > g_image_frame_vec;
-std::vector< GLuint >      g_texture_id_vec;
+// std::vector< Image_frame > g_image_frame_vec;
+// std::vector< GLuint >      g_texture_id_vec;
 long                       img_width = 0, img_heigh = 0;
 
 LiDAR_frame_pts_and_pose_vec g_eigen_vec_vec;
 bool                         g_flag_pause = false;
-int                          if_first_call = 1;
+// int                          if_first_call = 1;
 
-std::string          g_debug_string;
+// std::string          g_debug_string;
 int                  g_current_frame = -1;
 
 // GUI settting
-bool   g_display_mesh = false;
+bool   g_display_mesh = true;
 int    g_enable_mesh_rec = true;
 int    g_save_to_offline_bin = false;
 int    g_display_face = 1;
@@ -133,23 +94,20 @@ bool   g_display_main_window = true;
 bool   g_display_camera_pose_window = false;
 bool   g_display_help_win = false;
 bool   g_follow_cam = false;
-bool   g_mesh_if_color = true;
+bool   g_mesh_if_color = false;
 bool   g_if_draw_z_plane = true;
 bool   g_if_draw_wireframe = false;
 bool   g_if_draw_depth = false;
 bool   g_if_depth_bind_cam = true;
-
 bool   g_force_refresh_triangle = false;
 
+// render
 extern Common_tools::Axis_shader         g_axis_shader;
 extern Common_tools::Ground_plane_shader g_ground_plane_shader;
 
-ImVec4 g_mesh_color = ImVec4( 1.0, 1.0, 1.0, 1.0 );
+// ImVec4 g_mesh_color = ImVec4( 1.0, 1.0, 1.0, 1.0 );
 
-Voxel_mapping voxel_mapping;
-
-void print_help_window( bool *if_display_help_win )
-{
+void print_help_window( bool *if_display_help_win ) {
     ImGui::Begin( "--- Help ---", if_display_help_win );
     ImGui::Text( "[H]     | Display/Close main windows" );
     ImGui::Text( "[C]     | Show/Close camera pose windows" );
@@ -166,8 +124,7 @@ void print_help_window( bool *if_display_help_win )
     ImGui::End();
 }
 
-void get_last_avr_pose( int current_frame_idx, Eigen::Quaterniond &q_avr, vec_3 &t_vec )
-{
+void get_last_avr_pose( int current_frame_idx, Eigen::Quaterniond &q_avr, vec_3 &t_vec ) {
     const int win_ssd = 1;
     mat_3_3   lidar_frame_to_camera_frame;
     // Clang-format off
@@ -175,22 +132,18 @@ void get_last_avr_pose( int current_frame_idx, Eigen::Quaterniond &q_avr, vec_3 
     // Clang-format on
     q_avr = Eigen::Quaterniond::Identity();
     t_vec = vec_3::Zero();
-    if ( current_frame_idx < 1 )
-    {
+    if ( current_frame_idx < 1 ) {
         return;
     }
     int                frame_count = 0;
     int                frame_s = std::max( 0, current_frame_idx - win_ssd );
     vec_3              log_angle_acc = vec_3( 0, 0, 0 );
     Eigen::Quaterniond q_first;
-    for ( int frame_idx = frame_s; frame_idx < current_frame_idx; frame_idx++ )
-    {
-        if ( g_eigen_vec_vec[ frame_idx ].second.size() != 0 )
-        {
+    for ( int frame_idx = frame_s; frame_idx < current_frame_idx; frame_idx++ ) {
+        if ( g_eigen_vec_vec[ frame_idx ].second.size() != 0 ) {
             Eigen::Quaterniond pose_q( g_eigen_vec_vec[ frame_idx ].second.head< 4 >() );
             pose_q.normalize();
-            if ( frame_count == 0 )
-            {
+            if ( frame_count == 0 ) {
                 q_first = pose_q;
             }
             q_avr = q_avr * pose_q;
@@ -205,49 +158,25 @@ void get_last_avr_pose( int current_frame_idx, Eigen::Quaterniond &q_avr, vec_3 
     q_avr = q_avr * Eigen::Quaterniond( lidar_frame_to_camera_frame );
 }
 
-int main( int argc, char **argv )
-{
+int main( int argc, char **argv ) {
     // Setup window
     pcl::console::setVerbosityLevel( pcl::console::L_ALWAYS );
     Common_tools::printf_software_version();
-    printf_program( "ImMesh: An Immediate LiDAR Localization and Meshing Framework" );
     
     ros::init( argc, argv, "laserMapping" );
     voxel_mapping.init_ros_node();
 
-    GLFWwindow *window = g_gl_camera.init_openGL_and_ImGUI( "ImMesh: An Immediate LiDAR Localization and Meshing Framework", 1, voxel_mapping.m_GUI_font_size );
-    if ( !gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) )
-    {
+    GLFWwindow *window = g_gl_camera.init_openGL_and_ImGUI( "mesh reconstruction realtime", 1, voxel_mapping.m_GUI_font_size );
+    if ( !gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) ) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    Common_tools::Point_cloud_shader  g_pt_shader;
+    // Common_tools::Point_cloud_shader  g_pt_shader;
     init_openGL_shader();
-    if ( window == nullptr )
-    {
+    if ( window == nullptr ) {
         cout << "Window == nullptr" << endl;
         return 0;
     }
-
-    
-    g_enable_mesh_rec = voxel_mapping.m_if_enable_mesh_rec;
-    cout << "Offline point cloud name: " << ANSI_COLOR_GREEN_BOLD << voxel_mapping.m_pointcloud_file_name << ANSI_COLOR_RESET << endl;
-    if ( Common_tools::if_file_exist( voxel_mapping.m_pointcloud_file_name ) )
-    {
-        pcl::PointCloud< pcl::PointXYZI > offline_pts;
-        cout << "Loading data..." ;
-        fflush( stdout );
-        pcl::io::loadPCDFile( voxel_mapping.m_pointcloud_file_name, offline_pts );
-        cout << " total of pts = " << offline_pts.points.size() << endl;
-        cout << "g_map_rgb_pts_mesh.m_minimum_pts_size = " << g_map_rgb_pts_mesh.m_minimum_pts_size << endl;
-        reconstruct_mesh_from_pointcloud( offline_pts.makeShared() );
-    }
-    else if(voxel_mapping.m_pointcloud_file_name.length() > 5)
-    {
-        cout << ANSI_COLOR_RED_BOLD << "Offline point cloud file: " << voxel_mapping.m_pointcloud_file_name <<" NOT exist!!!, Please check!!!" << ANSI_COLOR_RESET << endl;
-        while(1);
-    }
-    
     
     cout << "====Loading parameter=====" << endl;
 
@@ -273,8 +202,8 @@ int main( int argc, char **argv )
     cout << "==== Loading parameter end =====" << endl;
 
     std::thread thr_mapping = std::thread( &Voxel_mapping::service_LiDAR_update, &voxel_mapping );
-    std::thread thr_vio = std::thread( &Voxel_mapping::service_VIO_update, &voxel_mapping );
     std::thread thr = std::thread( service_refresh_and_synchronize_triangle, 100 );
+    std::thread thr_vio = std::thread( &Voxel_mapping::service_VIO_update, &voxel_mapping );
     std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
     Common_tools::Timer disp_tim;
 
@@ -285,7 +214,7 @@ int main( int argc, char **argv )
     g_gl_camera.m_gl_cam.m_camera_z_far = 1500;
     g_gl_camera.m_gl_cam.m_camera_z_near = 0.1;
     
-    // Rasterization configuration
+    // // Rasterization configuration
     Cam_view m_depth_view_camera;
     m_depth_view_camera.m_display_w = 640;
     m_depth_view_camera.m_display_h = 480;
@@ -294,17 +223,17 @@ int main( int argc, char **argv )
     m_depth_view_camera.m_draw_depth_pts_size = 2;
     m_depth_view_camera.m_draw_LiDAR_pts_size = m_depth_view_camera.m_draw_depth_pts_size;
     m_depth_view_camera.m_if_draw_depth_pts = true;
-    vec_3 ext_rot_angle = vec_3( 0, 0, 0 );
+    // vec_3 ext_rot_angle = vec_3( 0, 0, 0 );
 
-    while ( !glfwWindowShouldClose( window ) )
-    {
+    Eigen::Quaterniond q_last_avr;
+    vec_3              t_last_avr;
+
+    while ( !glfwWindowShouldClose( window ) ) {
         g_gl_camera.draw_frame_start();
-
-        Eigen::Quaterniond q_last_avr;
-        vec_3              t_last_avr;
+        // ImGui::NewFrame();
+        
         get_last_avr_pose( g_current_frame, q_last_avr, t_last_avr );
-        if ( g_if_draw_depth )
-        {
+        if ( g_if_draw_depth ) {
             Common_tools::Timer tim;
             tim.tic();
             m_depth_view_camera.m_camera_z_far = g_gl_camera.m_gl_cam.m_camera_z_far;
@@ -323,22 +252,14 @@ int main( int argc, char **argv )
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
             m_depth_view_camera.draw_depth_image();
             g_gl_camera.set_gl_camera_pose_matrix();
-            if(m_depth_view_camera.m_if_draw_depth_pts)
-            {
+            if(m_depth_view_camera.m_if_draw_depth_pts) {
                 g_draw_LiDAR_point = true;
             }
         }
 
-        if ( g_display_main_window )
-        {
-            ImGui::Begin( "ImMesh's Main_windows", &g_display_main_window );               // Create a window called "Hello, world!" and append into it.
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.75f), "ImMesh: An Immediate LiDAR Localization and Meshing Framework"); 
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.75f), "Github:  ");
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "https://github.com/hku-mars/ImMesh");
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.75f), "Author:  ");
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Jiarong Lin & Chongjian Yuan");
+        if ( g_display_main_window ) {
+            ImGui::Begin( "Main_windows", &g_display_main_window ); 
+            
             if (ImGui::TreeNode("Help"))
             {
                 ImGui::Text( "[H]    | Display/Close main windows" );
@@ -358,43 +279,39 @@ int main( int argc, char **argv )
             }
             ImGui::SetNextItemOpen(true, 1);
             // ImGui::SetNextTreeNodeOpen();
-            if (ImGui::TreeNode("Draw Online reconstructed mesh options:"))
-            {   
+            if (ImGui::TreeNode("Draw Online reconstructed mesh options:")) {   
                 ImGui::RadioButton("Draw mesh's Facet", &g_display_face, 1); 
                 ImGui::RadioButton("Draw mesh's Wireframe", &g_display_face, 0);
-                if(ImGui::Checkbox( "Draw mesh with color", &g_mesh_if_color ))
-                {
+                if(ImGui::Checkbox( "Draw mesh with color", &g_mesh_if_color )) {
                     g_force_refresh_triangle = true;
                 }
                 ImGui::TreePop();
                 ImGui::Separator();
             } 
-            if (ImGui::TreeNode("LiDAR pointcloud reinforcement"))
-            {
-                ImGui::Checkbox( "Enable", &g_if_draw_depth );
-                if(g_if_draw_depth)
-                {
-                    ImGui::Checkbox( "If depth in sensor frame", &g_if_depth_bind_cam );
-                }
-                ImGui::SliderInt( "Reinforced point size", &m_depth_view_camera.m_draw_depth_pts_size, 0, 10 );
-                ImGui::SliderInt( "LiDAR point size", &m_depth_view_camera.m_draw_LiDAR_pts_size, 0, 10 );
-                ImGui::TreePop();
-                ImGui::Separator();
-            }
+            // if (ImGui::TreeNode("LiDAR pointcloud reinforcement")) {
+            //     ImGui::Checkbox( "Enable", &g_if_draw_depth );
+            //     if(g_if_draw_depth) {
+            //         ImGui::Checkbox( "If depth in sensor frame", &g_if_depth_bind_cam );
+            //     }
+            //     ImGui::SliderInt( "Reinforced point size", &m_depth_view_camera.m_draw_depth_pts_size, 0, 10 );
+            //     ImGui::SliderInt( "LiDAR point size", &m_depth_view_camera.m_draw_LiDAR_pts_size, 0, 10 );
+            //     ImGui::TreePop();
+            //     ImGui::Separator();
+            // }
             ImGui::Checkbox( "Move follow camera", &g_follow_cam );
             ImGui::Checkbox( "Mapping pause", &g_flag_pause );
             ImGui::Checkbox( "Draw LiDAR point", &g_draw_LiDAR_point );
-            if(g_draw_LiDAR_point)
-            {
+            if(g_draw_LiDAR_point) {
                 ImGui::SliderInt( "LiDAR point size", & m_depth_view_camera.m_draw_LiDAR_pts_size, 0, 10 );
             }
-            ImGui::Checkbox( "Axis and Z_plane", &g_if_draw_z_plane );
+            // ImGui::Checkbox( "Axis and Z_plane", &g_if_draw_z_plane );
             
             ImGui::SliderFloat( "Path width", &g_draw_path_size, 1.0, 10.0f );
             ImGui::SliderFloat( "Camera size", &g_display_camera_size, 0.01, 10.0, "%lf", ImGuiSliderFlags_Logarithmic );
             
-            if ( ImGui::Button( "  Save Mesh to PLY file  " ) )
-            {
+            if ( ImGui::Button( "  Save Mesh to PLY file  " ) ) {
+                std::this_thread::sleep_for( std::chrono::seconds( 30 ) );
+
                 int temp_flag = g_flag_pause;
                 g_flag_pause = true;
                 Common_tools::create_dir( data_path_file );
@@ -402,124 +319,111 @@ int main( int argc, char **argv )
                 g_flag_pause = temp_flag;
             }
 
-            if ( ImGui::Button( "Load Camera view" ) )
-            {
-                g_gl_camera.load_camera( gl_camera_file_name );
+            if ( ImGui::Button( "  Save Mesh to Osgb file  " ) ) {
+                std::this_thread::sleep_for( std::chrono::seconds( 30 ) );
+
+                int temp_flag = g_flag_pause;
+                g_flag_pause = true;
+                Common_tools::create_dir( data_path_file );
+                save_to_ply_file( std::string( data_path_file ).append( "/rec_mesh.osgb" ), g_ply_smooth_factor, g_ply_smooth_k );
+                g_flag_pause = temp_flag;
             }
 
-            if ( ImGui::Button( "Save Camera view" ) )
-            {
-                cout << "Save view to " << gl_camera_file_name << endl;
-                g_gl_camera.save_camera( gl_camera_file_name );
-            }
-            ImGui::Checkbox( "Show OpenGL camera paras", &g_display_camera_pose_window ); 
-            ImGui::Text( "Refresh rate %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate );
+            // if ( ImGui::Button( "Load Camera view" ) ) {
+            //     g_gl_camera.load_camera( gl_camera_file_name );
+            // }
+
+            // if ( ImGui::Button( "Save Camera view" ) ) {
+            //     cout << "Save view to " << gl_camera_file_name << endl;
+            //     g_gl_camera.save_camera( gl_camera_file_name );
+            // }
+            // ImGui::Checkbox( "Show OpenGL camera paras", &g_display_camera_pose_window ); 
+            // ImGui::Text( "Refresh rate %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate );
             if ( ImGui::Button( "      Exit Program      " ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
                 glfwSetWindowShouldClose( window, 1 );
 
             ImGui::End();
         }
 
-        if(g_draw_LiDAR_point)
-        {
-            if ( m_depth_view_camera.m_if_draw_depth_pts )
-            {
-                if ( m_depth_view_camera.m_draw_LiDAR_pts_size > 0 )
-                {
+        if(g_draw_LiDAR_point) {
+            if ( m_depth_view_camera.m_if_draw_depth_pts ) {
+                if ( m_depth_view_camera.m_draw_LiDAR_pts_size > 0 ) {
                     display_current_LiDAR_pts( g_current_frame, m_depth_view_camera.m_draw_LiDAR_pts_size, vec_4f( 1.0, 1.0, 1.0, 0.85 ) );
                 }
                 display_reinforced_LiDAR_pts( m_depth_view_camera.m_depth_pts_vec, m_depth_view_camera.m_draw_depth_pts_size, vec_3f( 1.0, 0.0, 1.0 ) );
             }
         }
 
-        if ( g_follow_cam )
-        {
-            if ( g_current_frame > 1 )
-            {
+        if ( g_follow_cam ) {
+            if ( g_current_frame > 1 ) {
                 g_gl_camera.tracking_camera( Eigen::Quaterniond::Identity(), t_last_avr );
+                // g_gl_camera.tracking_camera(q_last_avr, t_last_avr);
             }
         }
 
-        if ( g_display_help_win )
-        {
+        if ( g_display_help_win ) {
             // display help window
             print_help_window( &g_display_help_win );
         }
 
-        if ( g_display_camera_pose_window )
-        {
+        if ( g_display_camera_pose_window ) {
             g_gl_camera.draw_camera_window( g_display_camera_pose_window );
         }
 
-        if ( g_if_draw_z_plane )
-        {
+        if ( g_if_draw_z_plane ) {
             g_axis_shader.draw( g_gl_camera.m_gl_cam.m_glm_projection_mat,
                                 Common_tools::eigen2glm( g_gl_camera.m_gl_cam.m_camera_pose_mat44_inverse ) );
             g_ground_plane_shader.draw( g_gl_camera.m_gl_cam.m_glm_projection_mat,
                                         Common_tools::eigen2glm( g_gl_camera.m_gl_cam.m_camera_pose_mat44_inverse ) );
         }
 
-        if ( g_display_mesh )
-        {
+        if ( g_display_mesh ) {
             draw_triangle( g_gl_camera.m_gl_cam );
         }
 
-        if ( g_current_frame >= 0 )
-        {
+        if ( g_current_frame >= 0 ) {
             draw_camera_pose( g_current_frame, g_draw_path_size, g_display_camera_size );
             draw_camera_trajectory( g_current_frame + 1, g_draw_path_size);
         }
         
-        // For Key-board control
-        if ( g_gl_camera.if_press_key( "H" ) )
-        {
-            g_display_main_window = !g_display_main_window;
-        }
-        if ( g_gl_camera.if_press_key( "C" ) )
-        {
-            g_display_camera_pose_window = !g_display_camera_pose_window;
-        }
-        if ( g_gl_camera.if_press_key( "F" ) )
-        {
-            g_display_face = !g_display_face;
-        }
-        if ( g_gl_camera.if_press_key( "Space" ) )
-        {
-            g_flag_pause = !g_flag_pause;
-        }
-        if ( g_gl_camera.if_press_key( "S" ) )
-        {
-            g_gl_camera.save_camera( gl_camera_file_name );
-        }
-        if ( g_gl_camera.if_press_key( "Z" ) )
-        {
-            g_gl_camera.load_camera( gl_camera_file_name );
-        }
-        if ( g_gl_camera.if_press_key( "D" ) )
-        {
-            g_if_draw_depth = !g_if_draw_depth;
-        }
-        if ( g_gl_camera.if_press_key( "M" ) )
-        {
+        // // For Key-board control
+        // if ( g_gl_camera.if_press_key( "H" ) ) {
+        //     g_display_main_window = !g_display_main_window;
+        // }
+        // if ( g_gl_camera.if_press_key( "C" ) ) {
+        //     g_display_camera_pose_window = !g_display_camera_pose_window;
+        // }
+        // if ( g_gl_camera.if_press_key( "F" ) ) {
+        //     g_display_face = !g_display_face;
+        // }
+        // if ( g_gl_camera.if_press_key( "Space" ) ) {
+        //     g_flag_pause = !g_flag_pause;
+        // }
+        // if ( g_gl_camera.if_press_key( "S" ) ) {
+        //     g_gl_camera.save_camera( gl_camera_file_name );
+        // }
+        // if ( g_gl_camera.if_press_key( "Z" ) ) {
+        //     g_gl_camera.load_camera( gl_camera_file_name );
+        // }
+        // if ( g_gl_camera.if_press_key( "D" ) ) {
+        //     g_if_draw_depth = !g_if_draw_depth;
+        // }
+        if ( g_gl_camera.if_press_key( "M" ) ) {
             g_display_mesh = !g_display_mesh;
         }
-        if ( g_gl_camera.if_press_key( "T" ) )
-        {
-            g_follow_cam = !g_follow_cam;
-            if ( g_current_frame > 1 )
-            {
-                g_gl_camera.set_last_tracking_camera_pos( q_last_avr, t_last_avr );
-            }
-        }
-        if ( g_gl_camera.if_press_key( "Escape" ) )
-        {
+        // if ( g_gl_camera.if_press_key( "T" ) ) {
+        //     g_follow_cam = !g_follow_cam;
+        //     if ( g_current_frame > 1 ) {
+        //         g_gl_camera.set_last_tracking_camera_pos( q_last_avr, t_last_avr );
+        //     }
+        // }
+        if ( g_gl_camera.if_press_key( "Escape" ) ) {
             glfwSetWindowShouldClose( window, 1 );
         }
         
-        if ( g_gl_camera.if_press_key( "F1" ) )
-        {
-            g_display_help_win = !g_display_help_win;
-        }
+        // if ( g_gl_camera.if_press_key( "F1" ) ) {
+        //     g_display_help_win = !g_display_help_win;
+        // }
 
         g_gl_camera.set_gl_camera_pose_matrix();
         g_gl_camera.draw_frame_finish();

@@ -43,8 +43,7 @@ different license.
 #define RETURN0 0x00
 #define RETURN0AND1 0x10
 
-Preprocess::Preprocess() : feature_enabled( 0 ), lidar_type( AVIA ), blind( 0.01 ), point_filter_num( 1 )
-{
+Preprocess::Preprocess() : feature_enabled( 1 ), lidar_type( VELO32 ), blind( 1 ), point_filter_num( 10 ) {
     inf_bound = 10;
     N_SCANS = 6;
     group_size = 8;
@@ -67,6 +66,8 @@ Preprocess::Preprocess() : feature_enabled( 0 ), lidar_type( AVIA ), blind( 0.01
     jump_down_limit = cos( jump_down_limit / 180 * M_PI );
     cos160 = cos( cos160 / 180 * M_PI );
     smallp_intersect = cos( smallp_intersect / 180 * M_PI );
+
+    blind_sqr = blind * blind;
 }
 
 Preprocess::~Preprocess() {}
@@ -274,8 +275,7 @@ void Preprocess::l515_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
     // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
 
-void Preprocess::oust64_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
-{
+void Preprocess::oust64_handler( const sensor_msgs::PointCloud2::ConstPtr &msg ) {
     pl_surf.clear();
     pl_corn.clear();
     pl_full.clear();
@@ -284,20 +284,20 @@ void Preprocess::oust64_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
     int plsize = pl_orig.size();
     pl_corn.reserve( plsize );
     pl_surf.reserve( plsize );
-    if ( feature_enabled )
-    {
-        for ( int i = 0; i < N_SCANS; i++ )
-        {
+    if ( feature_enabled ) {
+        for ( int i = 0; i < N_SCANS; i++ ) {
             pl_buff[ i ].clear();
             pl_buff[ i ].reserve( plsize );
         }
 
-        for ( uint i = 0; i < plsize; i++ )
-        {
+        for ( uint i = 0; i < plsize; i++ ) {
             double range = pl_orig.points[ i ].x * pl_orig.points[ i ].x + pl_orig.points[ i ].y * pl_orig.points[ i ].y +
                            pl_orig.points[ i ].z * pl_orig.points[ i ].z;
             if ( range < ( blind * blind ) )
                 continue;
+            if (pl_orig.points[i].x < 0) {
+                continue;
+            }
             Eigen::Vector3d pt_vec;
             PointType       added_pt;
             added_pt.x = pl_orig.points[ i ].x;
@@ -314,22 +314,19 @@ void Preprocess::oust64_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
                 yaw_angle += 360.0;
             // printf("Time scale  = %f\r\n", (float )time_unit_scale);
             added_pt.curvature = pl_orig.points[ i ].t * time_unit_scale;
-            if ( pl_orig.points[ i ].ring < N_SCANS )
-            {
+            if ( pl_orig.points[ i ].ring < N_SCANS ) {
                 pl_buff[ pl_orig.points[ i ].ring ].push_back( added_pt );
             }
         }
 
-        for ( int j = 0; j < N_SCANS; j++ )
-        {
+        for ( int j = 0; j < N_SCANS; j++ ) {
             PointCloudXYZI &   pl = pl_buff[ j ];
             int                linesize = pl.size();
             vector< orgtype > &types = typess[ j ];
             types.clear();
             types.resize( linesize );
             linesize--;
-            for ( uint i = 0; i < linesize; i++ )
-            {
+            for ( uint i = 0; i < linesize; i++ ) {
                 types[ i ].range = sqrt( pl[ i ].x * pl[ i ].x + pl[ i ].y * pl[ i ].y );
                 vx = pl[ i ].x - pl[ i + 1 ].x;
                 vy = pl[ i ].y - pl[ i + 1 ].y;
@@ -537,8 +534,15 @@ void Preprocess::velodyne32_handler( const sensor_msgs::PointCloud2::ConstPtr &m
     pcl::fromROSMsg( *msg, pl_orig );
     int plsize = pl_orig.points.size();
     // pl_surf.reserve(plsize);
-    for ( int i = 0; i < pl_orig.size(); i++ )
-    {
+    for ( int i = 0; i < pl_orig.size(); i++ ) {
+        double distance = std::sqrt(pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z);
+
+        if (distance > 10.0 || distance < 1.5) {
+            continue;
+        }
+        if (pl_orig.points[i].x < 0) {
+            continue;
+        }
         PointType added_pt;
         added_pt.x = pl_orig.points[ i ].x;
         added_pt.y = pl_orig.points[ i ].y;

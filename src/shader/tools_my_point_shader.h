@@ -261,24 +261,22 @@ class Point_cloud_shader
         init_data_buffer();
     }
 
-    void draw( glm::mat4 proj_mat, glm::mat4 pose_mat, GLenum draw_mode = GL_POINTS  )
-    {
+    void draw( glm::mat4 proj_mat, glm::mat4 pose_mat, GLenum draw_mode = GL_POINTS  ) {
         Common_tools::Timer tim;
         tim.tic();
-        if(m_if_set_pt_buffer == false)
-        {
+        if(m_if_set_pt_buffer == false) {
             return;
         }
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         glEnable( GL_BLEND );
         glm::mat4 projection_mul_view = proj_mat * pose_mat;
+
         m_pt_shader->use();
         m_pt_shader->setFloat( "pointAlpha", m_pts_alpha );
         m_pt_shader->setFloat( "pointSize", m_pts_size );
         m_pt_shader->setMat4( "projection_mul_view", projection_mul_view );
         int draw_count = m_pts_vector.size();
-        if ( m_draw_points_number >= 0 )
-        {
+        if ( m_draw_points_number >= 0 ) {
             draw_count = std::min( m_draw_points_number, ( int ) m_pts_vector.size() );
             // cout << "Draw count  = " << draw_count << " | " << m_pts_vector.size() << endl;
         }
